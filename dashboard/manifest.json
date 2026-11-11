@@ -1,0 +1,7 @@
+{
+  "name": "game-lab",
+  "label": "Game Lab",
+  "version": "0.1.0",
+  "description": "Review and validate source-addressed RPG Maker translation drafts (Game Localization Studio part).",
+  "api": "plugin_api.py"
+}

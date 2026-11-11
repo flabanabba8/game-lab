@@ -1,0 +1,31 @@
+name: game-lab
+version: "0.1.0"
+description: "Work on games with Hermes: mod a game on a safe copy, translate its text without breaking it, and playtest it by pressing and holding keys and reporting honestly."
+author: "Game Lab contributors"
+license: GPL-3.0-or-later
+requires_hermes: ">=0.22.0"
+provides_tools:
+  - modlab_resources
+  - modlab_toolkit
+  - modlab_rea_native
+  - modlab_create
+  - modlab_inspect
+  - modlab_apply
+  - modlab_rollback
+  - modlab_select_preserved
+  - localize_inspect
+  - localize_get
+  - localize_translate
+  - localize_validate
+  - localize_export
+  - localize_list_drafts
+  - playtest_start
+  - playtest_action
+  - playtest_replay
+  - playtest_observe
+  - playtest_report
+provides_hooks:
+  - pre_tool_call
+
+config_schema:
+  rea_native_tool: {type: str, default: "", description: "Optional selected registered native REA tool for this host. CLI analysis and main-agent native REA remain available; no credentials are copied."}

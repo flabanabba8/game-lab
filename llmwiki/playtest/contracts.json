@@ -1,0 +1,142 @@
+{
+  "status": "actual registered source schemas; handlers not executed for schema capture",
+  "tools": [
+    {
+      "name": "playtest_start",
+      "description": "Start an explicitly authorized playtest for one named application with a scenario description.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "app": {
+            "type": "string"
+          },
+          "scenario": {
+            "type": "string"
+          },
+          "window_id": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "pid": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Process ID of that window, from computer_use list_windows; needed so the window can be captured before each action"
+          }
+        },
+        "required": [
+          "app",
+          "scenario",
+          "window_id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "playtest_action",
+      "description": "Perform ONE native computer-use action on the selected app. Optionally record a restricted non-text action for explicit step-by-step replay. Host approvals remain in force; observations are separate.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "run_id": {
+            "type": "string"
+          },
+          "intent": {
+            "type": "string"
+          },
+          "expected": {
+            "type": "string"
+          },
+          "action": {
+            "type": "object",
+            "description": "The native computer_use action as an object, for example {\"action\": \"key\", \"keys\": \"Right\"} or {\"action\": \"key\", \"keys\": \"space\", \"delivery_mode\": \"foreground\", \"bring_to_front\": true}. Do not wrap it again and do not repeat run_id or app inside it. For movement or jumps in an action game use {\"action\": \"hold\", \"keys\": [\"Right\"], \"seconds\": 1.5} (up to three keys together, at most 3 seconds): a tap is too short for a game that reads held keys, and the same goes for Escape or a pause key during play (hold it 0.3 seconds). A hold returns a capture taken half way through, while the keys are still down. Every input action returns a fresh capture of the window; its pixel size is in the result and click coordinates use that frame."
+          },
+          "record_for_replay": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "run_id",
+          "intent",
+          "expected",
+          "action"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "playtest_replay",
+      "description": "Replay one explicitly selected, previously observed non-text action into a separate run of the same named app. Verify coordinates and state first; host approvals remain in force.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "run_id": {
+            "type": "string"
+          },
+          "source_run_id": {
+            "type": "string"
+          },
+          "source_step": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "required": [
+          "run_id",
+          "source_run_id",
+          "source_step"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "playtest_observe",
+      "description": "Record a user/agent observation after inspecting actual game state. The result is a human observation, not automatic proof.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "run_id": {
+            "type": "string"
+          },
+          "step": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "passed",
+              "failed",
+              "uncertain"
+            ]
+          },
+          "note": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "run_id",
+          "step",
+          "status",
+          "note"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "playtest_report",
+      "description": "Read playtest intentions, action acknowledgment and separately recorded observations.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "run_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "run_id"
+        ],
+        "additionalProperties": false
+      }
+    }
+  ]
+}
