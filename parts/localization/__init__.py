@@ -10,10 +10,18 @@ TOOLS = {
     'localize_list_drafts': ('List saved local draft IDs, source filenames and translation counts without disclosing game text.', {}, []),
 }
 
+PLAYTEST_HINT = ('The export is a separate copy; the original file was not changed. To check it in the game, copy it into a lab copy of the game, '
+                 'start that copy in a window you choose, then ask Hermes "Playtest it: <what to check>". Nothing was started automatically, '
+                 'and this check does not prove how the text looks on screen.')
+
 
 def invoke(name, args):
     from plugins.plugin_storage import plugin_data_dir
-    try: return json.dumps(getattr(Studio(plugin_data_dir('game-lab-localization')), name.removeprefix('localize_'))(**args))
+    try:
+        result = getattr(Studio(plugin_data_dir('game-lab-localization')), name.removeprefix('localize_'))(**args)
+        if name == 'localize_export' and isinstance(result, dict):
+            result['playtest'] = PLAYTEST_HINT
+        return json.dumps(result)
     except (ValueError, TypeError, OSError, KeyError, RecursionError, RuntimeError) as exc: return json.dumps({'error': str(exc)})
 
 

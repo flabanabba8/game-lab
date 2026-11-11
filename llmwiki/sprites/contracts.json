@@ -1,0 +1,62 @@
+{
+  "status": "actual registered source schemas; no handlers executed",
+  "tools": [
+    {
+      "name": "sprite_inspect_mv",
+      "description": "Inspect an RPG Maker MV character PNG grid, naming prefix and cell alpha occupancy. Empty cells may be intentional; artwork is untrusted data.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "source_path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_path"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "sprite_preview_mv",
+      "description": "Create an animated GIF of a selected character slot and direction. This is a frame-order preview, not an in-game verification.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "source_path": {
+            "type": "string"
+          },
+          "fingerprint": {
+            "type": "string"
+          },
+          "slot": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 7
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "down",
+              "left",
+              "right",
+              "up"
+            ]
+          },
+          "frame_ms": {
+            "type": "integer",
+            "minimum": 50,
+            "maximum": 2000
+          }
+        },
+        "required": [
+          "source_path",
+          "fingerprint",
+          "slot",
+          "direction"
+        ],
+        "additionalProperties": false
+      }
+    }
+  ]
+}

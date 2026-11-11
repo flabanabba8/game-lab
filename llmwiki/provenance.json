@@ -2,9 +2,34 @@
   "curated": "2026-11-11",
   "status": "source-derived from the three maintained parts; not a new live verification",
   "parts": [
-    {"part": "modlab", "stand_alone_plugin": "modlab", "version": "0.2.0", "wiki": "llmwiki/modlab", "skill": "skills/modlab/SKILL.md"},
-    {"part": "localization", "stand_alone_plugin": "game-localization-studio", "version": "0.2.1", "wiki": "llmwiki/localization", "skill": "skills/game-localization-studio/SKILL.md"},
-    {"part": "playtest", "stand_alone_plugin": "playtest-pilot", "version": "0.3.0", "wiki": "llmwiki/playtest", "skill": "skills/playtest-pilot/SKILL.md"}
+    {
+      "part": "modlab",
+      "stand_alone_plugin": "modlab",
+      "version": "0.2.0",
+      "wiki": "llmwiki/modlab",
+      "skill": "skills/modlab/SKILL.md"
+    },
+    {
+      "part": "localization",
+      "stand_alone_plugin": "game-localization-studio",
+      "version": "0.2.1",
+      "wiki": "llmwiki/localization",
+      "skill": "skills/game-localization-studio/SKILL.md"
+    },
+    {
+      "part": "playtest",
+      "stand_alone_plugin": "playtest-pilot",
+      "version": "0.3.0",
+      "wiki": "llmwiki/playtest",
+      "skill": "skills/playtest-pilot/SKILL.md"
+    },
+    {
+      "part": "sprites",
+      "stand_alone_plugin": "sprite-contract",
+      "version": "0.1.0",
+      "wiki": "llmwiki/sprites",
+      "skill": "skills/sprite-contract/SKILL.md"
+    }
   ],
   "note": "Each part's wiki files were copied from its plugin with relative links adjusted; the per-part tool references were merged into llmwiki/tools.md. The per-part provenance hashes referred to the stand-alone packages and were not carried over."
 }

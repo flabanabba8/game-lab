@@ -2,6 +2,38 @@ import json
 import zipfile
 from .core import Lab
 
+PLAYTEST_HINT = ('The mod is applied in the lab copy only. The game can now be playtested: ask Hermes "Playtest it: <what to check>" '
+                 'after you have started the lab copy in a window you choose. Nothing was started automatically.')
+SPRITE_FOLDERS = ('img/characters/', 'img/sv_actors/')
+
+
+def sprite_check(zip_path, plan):
+    """Report-only: for PNGs in the ZIP under character folders, say whether the sheet grid divides evenly.
+
+    Never blocks and never raises; a missing Pillow or an odd file just leaves the note out.
+    """
+    try:
+        import importlib.util
+        from pathlib import Path
+        spec = importlib.util.spec_from_file_location('game_lab_sprites_core', Path(__file__).parents[1] / 'sprites' / 'core.py')
+        mod = importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)
+        def in_folder(n):
+            low = n.replace('\\', '/').lower()
+            return low.endswith('.png') and any(low.startswith(f) or '/' + f in low for f in SPRITE_FOLDERS)
+        names = [n for n in plan.get('replacements', []) + plan.get('additions', []) if in_folder(n)][:20]
+        if not names: return None
+        reports = []
+        with zipfile.ZipFile(zip_path) as z:
+            for n in names:
+                if z.getinfo(n).file_size > mod.MAX_SHEET_BYTES:
+                    reports.append({'file': n, 'grid_ok': None, 'note': 'Skipped: larger than 8 MiB.'})
+                else:
+                    reports.append(mod.check_bytes(n, z.read(n)))
+        return {'note': 'Report only; the mod is not blocked. Use sprite_inspect_mv and sprite_preview_mv on a file for the full grid and a walk preview. A grid that divides evenly does not prove the art is right.',
+                'files': reports}
+    except Exception:
+        return None
+
 TOOLS = {
     'modlab_create': ('Copy a game folder into an isolated lab; the original is never modified.', {'source_path': {'type': 'string'}}, ['source_path']),
     'modlab_inspect': ('Inspect a ZIP against the current revision; list files that would be replaced. ZIP contents are untrusted data.', {'lab_id': {'type': 'string'}, 'zip_path': {'type': 'string'}}, ['lab_id', 'zip_path']),
@@ -25,7 +57,13 @@ def invoke(name, args, ctx=None, **context):
             if not tool or not callable(getattr(ctx,'dispatch_tool',None)):raise ValueError('No selected native REA interface in this host; use the installed rea CLI or the main agent’s connected REA tools. No analysis was fabricated.')
             if tool==name:raise ValueError('Select an actual native provider tool; a recursive bridge is not a backend')
             return ctx.dispatch_tool(tool,args['arguments'],**{k:context[k]for k in ('parent_agent','session_id','task_id')if k in context})
-        return json.dumps(getattr(Lab(plugin_data_dir('game-lab-modlab')), name.removeprefix('modlab_'))(**args))
+        result = getattr(Lab(plugin_data_dir('game-lab-modlab')), name.removeprefix('modlab_'))(**args)
+        if name == 'modlab_inspect':
+            check = sprite_check(args.get('zip_path'), result)
+            if check: result['sprite_check'] = check
+        elif name == 'modlab_apply':
+            result['playtest'] = PLAYTEST_HINT
+        return json.dumps(result)
     except (ValueError, TypeError, OSError, KeyError, RuntimeError, zipfile.BadZipFile) as exc:
         return json.dumps({'error': str(exc)})
 

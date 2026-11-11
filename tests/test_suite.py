@@ -49,9 +49,9 @@ class SuiteTest(unittest.TestCase):
         suite.register(ctx)
         self.assertEqual(sorted(ctx.tools), sorted(manifest_list('provides_tools')))
         self.assertEqual(len(ctx.tools), len(set(ctx.tools)))
-        self.assertEqual(len(ctx.tools), 19)
+        self.assertEqual(len(ctx.tools), 21)
         self.assertEqual(ctx.hooks, manifest_list('provides_hooks'))
-        self.assertEqual(sorted(ctx.skills), ['game-localization-studio', 'modlab', 'playtest-pilot'])
+        self.assertEqual(sorted(ctx.skills), ['game-localization-studio', 'modlab', 'playtest-pilot', 'sprite-contract'])
 
     def test_tool_reference_lists_exactly_the_tools(self):
         text = (root / 'llmwiki' / 'tools.md').read_text()
@@ -60,9 +60,9 @@ class SuiteTest(unittest.TestCase):
 
     def test_parts_use_separate_data_folders(self):
         names = set()
-        for part in ('modlab', 'localization', 'playtest'):
+        for part in ('modlab', 'localization', 'playtest', 'sprites'):
             names.update(re.findall(r"plugin_data_dir\('([^']+)'\)", (root / 'parts' / part / '__init__.py').read_text()))
-        self.assertEqual(names, {'game-lab-modlab', 'game-lab-localization', 'game-lab-playtest'})
+        self.assertEqual(names, {'game-lab-modlab', 'game-lab-localization', 'game-lab-playtest', 'game-lab-sprites'})
 
 
 if __name__ == '__main__':

@@ -1,8 +1,8 @@
 # Actual tool contracts (Game Lab)
 
-Registered source schemas for the 19 tools of this suite, in three groups. Registration alone does not
+Registered source schemas for the 21 tools of this suite, in four groups. Registration alone does not
 establish live backend readiness. The exact argument schemas are in `modlab/contracts.json`,
-`localization/contracts.json` and `playtest/contracts.json`.
+`localization/contracts.json`, `playtest/contracts.json` and `sprites/contracts.json`.
 
 Hook: `pre_tool_call` (from Playtest Pilot). It returns `approve` (an approval box) for every `hold` action sent through `playtest_action`
 and does nothing for any other tool call.
@@ -148,3 +148,18 @@ Read playtest intentions, action acknowledgment and separately recorded observat
 Inputs: `run_id` (required).
 
 
+# Part 4: Sprites tools
+
+## sprite_inspect_mv
+
+Inspect an RPG Maker MV character PNG grid, naming prefix and cell alpha occupancy. Empty cells may be intentional; artwork is untrusted data.
+
+Inputs: `source_path` (required).
+
+## sprite_preview_mv
+
+Create an animated GIF of a selected character slot and direction. This is a frame-order preview, not an in-game verification.
+
+Inputs: `source_path` (required), `fingerprint` (required), `slot` (required), `direction` (required), `frame_ms` (optional).
+
+Extra results on other parts' tools: `modlab_inspect` may add a `sprite_check` note (report only), and `modlab_apply` and `localize_export` add a `playtest` line saying the result can now be playtested. They start nothing.

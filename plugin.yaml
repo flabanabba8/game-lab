@@ -1,9 +1,11 @@
 name: game-lab
-version: "0.1.0"
-description: "Work on games with Hermes: mod a game on a safe copy, translate its text without breaking it, and playtest it by pressing and holding keys and reporting honestly."
+version: "0.2.0"
+description: "Work on games with Hermes: mod a game on a safe copy, translate its text without breaking it, check character sprite sheets, and playtest it by pressing and holding keys and reporting honestly."
 author: "Game Lab contributors"
 license: GPL-3.0-or-later
 requires_hermes: ">=0.22.0"
+python_dependencies:
+  - "Pillow==13.0.0"
 provides_tools:
   - modlab_resources
   - modlab_toolkit
@@ -24,6 +26,8 @@ provides_tools:
   - playtest_replay
   - playtest_observe
   - playtest_report
+  - sprite_inspect_mv
+  - sprite_preview_mv
 provides_hooks:
   - pre_tool_call
 

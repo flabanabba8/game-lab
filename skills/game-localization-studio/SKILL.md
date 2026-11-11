@@ -18,7 +18,9 @@ The plugin counts rows, not pixels, and the default window does not wrap long li
 if a translation is much longer than its source line, shorten it, or break it with a
 line break only while the whole message stays within the row limit. Run
 `localize_validate` before every export; if it or `localize_translate` reports a
-problem, fix that unit and validate again. In the report say how many units were
+problem, fix that unit and validate again. After `localize_export`, tell the user the export is a separate copy and offer a playtest: they can copy the file into a lab copy of the game, start it in a window they choose, and ask "Playtest it: <what to check>". Do not start a game or a playtest yourself without being asked, and do not call it proof of how the text looks.
+
+In the report say how many units were
 translated, which problems were caught and fixed, and that the originals were not
 changed and the export is a separate copy.
 
