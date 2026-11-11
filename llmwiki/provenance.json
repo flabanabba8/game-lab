@@ -1,6 +1,6 @@
 {
   "curated": "2026-11-11",
-  "status": "source-derived from the three maintained parts; not a new live verification",
+  "status": "source-derived; playtest guidance updated for Game Lab 0.2.1",
   "parts": [
     {
       "part": "modlab",
@@ -31,5 +31,5 @@
       "skill": "skills/sprite-contract/SKILL.md"
     }
   ],
-  "note": "Each part's wiki files were copied from its plugin with relative links adjusted; the per-part tool references were merged into llmwiki/tools.md. The per-part provenance hashes referred to the stand-alone packages and were not carried over."
+  "note": "The bundled playtest implementation and wiki diverged from the standalone 0.3.0 plugin in Game Lab 0.2.1. Earlier provenance hashes referred to standalone packages and were not carried over."
 }

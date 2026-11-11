@@ -48,7 +48,7 @@
           },
           "action": {
             "type": "object",
-            "description": "The native computer_use action as an object, for example {\"action\": \"key\", \"keys\": \"Right\"} or {\"action\": \"key\", \"keys\": \"space\", \"delivery_mode\": \"foreground\", \"bring_to_front\": true}. Do not wrap it again and do not repeat run_id or app inside it. For movement or jumps in an action game use {\"action\": \"hold\", \"keys\": [\"Right\"], \"seconds\": 1.5} (up to three keys together, at most 3 seconds): a tap is too short for a game that reads held keys, and the same goes for Escape or a pause key during play (hold it 0.3 seconds). A hold returns a capture taken half way through, while the keys are still down. Every input action returns a fresh capture of the window; its pixel size is in the result and click coordinates use that frame."
+            "description": "The native computer_use action as an object, for example {\"action\": \"key\", \"keys\": \"Right\"} or {\"action\": \"key\", \"keys\": \"space\", \"delivery_mode\": \"foreground\", \"bring_to_front\": true}. Do not wrap it again and do not repeat run_id or app inside it. For movement or jumps in an action game use {\"action\": \"hold\", \"keys\": [\"Right\"], \"seconds\": 1.5} (up to three keys together, at most 3 seconds): a tap is too short for a game that reads held keys, For a one-shot pause key use a short tap or 0.05\u20130.1 second hold, then wait and inspect; holding it longer can toggle pause repeatedly. A hold requests a capture one quarter of the way through; slow capture can arrive after key release, so inspect the image rather than assuming its timing. A wait action with seconds from 0 to 30 captures the window after the delay. Input actions request a fresh capture; its pixel size is in the result and click coordinates use that frame."
           },
           "record_for_replay": {
             "type": "boolean"
@@ -134,6 +134,125 @@
         },
         "required": [
           "run_id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "playtest_check",
+      "description": "Capture before, during and after one approved input and measure the change. Record the verdict with playtest_observe.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "run_id": {
+            "type": "string"
+          },
+          "intent": {
+            "type": "string"
+          },
+          "expected": {
+            "type": "string"
+          },
+          "action": {
+            "type": "object",
+            "description": "Example: {\"action\": \"hold\", \"keys\": [\"Right\"], \"seconds\": 1.5}; key uses the same shape; click uses coordinate.",
+            "properties": {
+              "action": {
+                "type": "string",
+                "enum": [
+                  "key",
+                  "hold",
+                  "click"
+                ]
+              },
+              "keys": {
+                "description": "One to three key names",
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "minItems": 1,
+                    "maxItems": 3
+                  }
+                ]
+              },
+              "seconds": {
+                "type": "number",
+                "minimum": 0.05,
+                "maximum": 3
+              },
+              "coordinate": {
+                "type": "array",
+                "items": {
+                  "type": "integer"
+                },
+                "minItems": 2,
+                "maxItems": 2
+              }
+            },
+            "required": [
+              "action"
+            ],
+            "additionalProperties": false
+          },
+          "pause_probe": {
+            "type": "boolean",
+            "description": "Capture again after one second to test whether the frame is frozen."
+          },
+          "resume_key": {
+            "type": "string",
+            "description": "Optional key to unpause after the pause probe; compare the resumed frame."
+          },
+          "dismiss_key": {
+            "type": "string",
+            "description": "Optional key to dismiss a visible panel before performing this input, within this approval."
+          }
+        },
+        "required": [
+          "run_id",
+          "intent",
+          "expected",
+          "action"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "playtest_read_value",
+      "description": "Capture and magnify a fractional window region to read a HUD value.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "run_id": {
+            "type": "string"
+          },
+          "region": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            },
+            "minItems": 4,
+            "maxItems": 4,
+            "description": "[left, top, right, bottom] as fractions of the window"
+          },
+          "step": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Optional recorded check to crop instead of the current window"
+          },
+          "frame": {
+            "type": "string",
+            "description": "Recorded frame label, such as after or one second later; default after"
+          }
+        },
+        "required": [
+          "run_id",
+          "region"
         ],
         "additionalProperties": false
       }

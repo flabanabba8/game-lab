@@ -117,7 +117,7 @@ handler was executed. This is interface evidence, not live capability testing.
 
 ## playtest_start
 
-Start an explicitly authorized playtest for one named application with a scenario description.
+Focus the selected window and wait boundedly for two non-black, approximately stable captures. Return the image and a run ID, or a not-ready reason. A visible title or overlay can still require human inspection.
 
 Inputs: `app` (required), `scenario` (required), `window_id` (required), `pid` (optional).
 
@@ -163,3 +163,11 @@ Create an animated GIF of a selected character slot and direction. This is a fra
 Inputs: `source_path` (required), `fingerprint` (required), `slot` (required), `direction` (required), `frame_ms` (optional).
 
 Extra results on other parts' tools: `modlab_inspect` may add a `sprite_check` note (report only), and `modlab_apply` and `localize_export` add a `playtest` line saying the result can now be playtested. They start nothing.
+
+## playtest_check
+
+Capture before, during and after one approved tap, hold, or click; estimate changed pixels, horizontal scrolling and centred-panel hints. Optional pause probing compares a second frame after one second and can send a resume key; optional dismissal retries a blocked key. The receipt stores facts and owner-only evidence images; use `playtest_observe` for a verdict. Timing, panel recognition and OCR are imperfect.
+
+## playtest_read_value
+
+Capture and magnify a selected fractional window region fourfold.

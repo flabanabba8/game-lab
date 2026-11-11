@@ -75,13 +75,14 @@ class Pilot:
             self.save(run_id, data)
             return len(data['steps'])
 
-    def finish(self, run_id, step, status, scene_shift=None):
+    def finish(self, run_id, step, status, scene_shift=None, facts=None):
         require_posix()
         with (self.root / '.lock').open('a') as lock:
             fcntl.flock(lock, fcntl.LOCK_EX)
             data = self.load(run_id)
             data['steps'][step-1]['acknowledgment'] = status
             if scene_shift: data['steps'][step-1]['scene_shift'] = scene_shift
+            if facts is not None: data['steps'][step-1]['facts'] = facts
             self.save(run_id, data)
 
     def observe(self, run_id, step, status, note):

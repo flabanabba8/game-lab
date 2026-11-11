@@ -10,7 +10,7 @@ It equips the active host model with domain knowledge, not a separate LLM servic
 
 ## Domain contract and important limits
 
-Ask for the application/scenario, platform, native computer-use access and permitted edits. Inspect the current host action schema and target before each action; forward approvals and original image-bearing results. The shipped adapter needs Hermes computer_use and POSIX window targeting; other runtimes need a supported target/action/observation contract and verified mapping. Until available, actions are blocked. Inspect screenshots in the main session, separate acknowledgment from observed success and never replay without an explicit selected step.
+Select the app and window, then use the atomic check for each expectation. It captures before, during and after one approved input; measurements and OCR are fallible hints, and a vision-capable model must inspect the images. Record verdicts separately. POSIX, X11, xdotool and Pillow are required; optional Tesseract supplies untrusted panel text.
 
 ## Knowledge map
 

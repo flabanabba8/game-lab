@@ -32,6 +32,23 @@ class PilotTests(unittest.TestCase):
         self.display.stop()
         self.tmp.cleanup()
 
+    def test_wait_observes_after_delay_and_ready_failure_blocks_input(self):
+        ctx = Context(json.dumps({'ok': True}))
+        with patch.object(module.time, 'sleep') as sleep:
+            module.perform(self.pilot, ctx, self.id, 'Wait', 'Transition settles', {'action': 'wait', 'seconds': 1}, session_id='fixture-session')
+        sleep.assert_called_once_with(1)
+        self.assertEqual(ctx.actions[-1][1]['action'], 'capture')
+        self.assertEqual(ctx.actions[-1][1]['mode'], 'vision')
+        self.assertEqual(self.pilot.report(self.id)['steps'][0]['acknowledgment'], 'acknowledged')
+        class Broken(Context):
+            def dispatch_tool(self, name, action, **kwargs):
+                self.actions.append((name, action, kwargs))
+                return json.dumps({'error': 'capture failed'})
+        broken = Broken(None)
+        result = json.loads(module.perform(self.pilot, broken, self.id, 'Move', 'Moves', {'action': 'key', 'keys': 'Right'}, session_id='fixture-session'))
+        self.assertIn('Ready check failed', result['error'])
+        self.assertEqual(len(broken.actions), 1)
+
     def test_overlapping_action_does_not_capture_or_dispatch(self):
         ctx = Context(json.dumps({'ok': True}))
         with module._action_lock:
@@ -110,6 +127,29 @@ class PilotTests(unittest.TestCase):
         self.assertEqual(module.hold_spec({'action': 'hold', 'keys': ['Right', 'space'], 'seconds': 1.5}), (['Right', 'space'], 1.5))
         for bad in ({'keys': 'Right', 'seconds': 4}, {'keys': 'Right', 'seconds': 0}, {'keys': ['ctrl+c'], 'seconds': 1}, {'keys': ['a', 'b', 'c', 'd'], 'seconds': 1}, {'keys': 'Right', 'seconds': 1, 'extra': 1}):
             with self.assertRaises(ValueError): module.hold_spec({'action': 'hold', **bad})
+
+    def test_hold_does_not_send_keys_if_focus_fails(self):
+        calls = []
+        class R: returncode = 1
+        def run(argv, **kw): calls.append(argv); return R()
+        with patch('shutil.which', return_value='/usr/bin/xdotool'):
+            with self.assertRaisesRegex(RuntimeError, 'focus'):
+                module.hold_keys(42, ['Right'], 1, run=run)
+        self.assertEqual(len(calls), 1)
+
+    def test_slow_capture_does_not_extend_hold(self):
+        import threading
+        released = threading.Event()
+        class R: returncode = 0
+        def run(argv, **kw):
+            if 'keyup' in argv: released.set()
+            return R()
+        def capture():
+            if not released.wait(2): raise AssertionError('Key was held while capture blocked')
+            return 'frame'
+        with patch('shutil.which', return_value='/usr/bin/xdotool'):
+            result = module.hold_keys(42, ['Right'], 0.05, run=run, during=capture)
+        self.assertEqual(result['during'], 'frame')
 
     def test_hold_presses_waits_and_always_releases_keys(self):
         calls = []
@@ -255,5 +295,88 @@ class PilotTests(unittest.TestCase):
     def test_grab_window_without_tools_returns_none(self):
         with patch('shutil.which', return_value=None):
             self.assertIsNone(module.grab_window(42))
+
+class AtomicMeasurements(unittest.TestCase):
+    def test_black_scroll_panel_and_freeze(self):
+        from PIL import Image, ImageDraw
+        import numpy as np
+        black = Image.new('RGB', (320, 180))
+        self.assertTrue(module.is_black(black))
+        rng = np.random.default_rng(8)
+        scene = Image.fromarray(rng.integers(0, 256, (180, 320, 3), dtype=np.uint8))
+        self.assertFalse(module.is_black(scene))
+        shifted = Image.fromarray(np.roll(np.asarray(scene), -30, axis=1))
+        facts = module.measurements(scene, shifted)
+        self.assertEqual(facts['scene_scroll_pixels'], 30)
+        self.assertEqual(facts['scroll_direction'], 'left')
+        self.assertEqual(module.measurements(scene, scene.copy())['changed_percent'], 0)
+        panel = scene.copy(); ImageDraw.Draw(panel).rectangle((80, 45, 240, 135), fill=(40,40,40))
+        facts = module.measurements(scene, panel)
+        self.assertTrue(facts['panel_after_hint'])
+        self.assertEqual(facts['panel_change'], 'appeared')
+        self.assertEqual(module.measurements(panel, scene)['panel_change'], 'disappeared')
+
+    def test_check_records_facts_and_pause_probe_and_approval(self):
+        from PIL import Image
+        with tempfile.TemporaryDirectory() as temp, patch.dict('os.environ', {'DISPLAY': ':7'}):
+            pilot = module.Pilot(temp); rid = pilot.start('Test', 'Pause', 42)['run_id']
+            im = Image.new('RGB', (100, 100), 'red')
+            class R: returncode = 0; stdout = b""
+            with patch.object(module, 'capture_image', return_value=im), patch.object(module, 'hold_keys', return_value={'during':im}), patch.object(module.shutil, 'which', return_value='/usr/bin/xdotool'), patch.object(module.subprocess, 'run', return_value=R()), patch.object(module.time, 'sleep'):
+                result = module.check(pilot, rid, 'Pause', 'Frozen', {'action':'key','keys':'Escape'}, True)
+            self.assertTrue(result['action_result']['frozen_one_second'])
+            self.assertTrue(pilot.report(rid)['steps'][0]['facts']['frozen_one_second'])
+            crop = module.read_value(pilot, rid, [0, 0, .25, .25], step=1, frame='one second later')
+            self.assertEqual(crop['action_result']['source_pixels'], (0, 0, 27, 27))
+            with self.assertRaisesRegex(ValueError, 'Recorded frame'):
+                module.read_value(pilot, rid, [0, 0, .25, .25], step=1, frame='missing')
+            self.assertEqual(module.on_pre_tool_call('playtest_check', {'action': {'action':'key','keys':'Escape'}})['action'], 'approve')
+
+    def test_nonpanel_ocr_is_not_reported_as_game_state(self):
+        from PIL import Image
+        with tempfile.TemporaryDirectory() as temp, patch.dict('os.environ', {'DISPLAY': ':7'}):
+            pilot = module.Pilot(temp); rid = pilot.start('Test', 'Gameplay', 42)['run_id']
+            im = Image.new('RGB', (100, 100), 'red')
+            class R: returncode = 0
+            with patch.object(module, 'capture_image', return_value=im), patch.object(module, 'visible_text', return_value='Spawn 4000'), patch.object(module, 'hold_keys', return_value={'during': im}), patch.object(module.shutil, 'which', return_value='/usr/bin/xdotool'), patch.object(module.subprocess, 'run', return_value=R()):
+                result = module.check(pilot, rid, 'Move', 'Moves', {'action':'key','keys':'w'})
+            self.assertNotIn('visible_text_untrusted', result['action_result'])
+            self.assertFalse(result['action_result']['panel_after_hint'])
+
+    def test_dismissal_precedes_input_and_is_recorded(self):
+        from PIL import Image
+        with tempfile.TemporaryDirectory() as temp, patch.dict('os.environ', {'DISPLAY': ':7'}):
+            pilot = module.Pilot(temp); rid = pilot.start('Test', 'Panel', 42)['run_id']
+            im = Image.new('RGB', (100, 100), 'red')
+            class R: returncode = 0; stdout = b''
+            def held(window, keys, seconds, during=None):
+                return {'during': im, 'during_completed_before_release': True}
+            with patch.object(module, 'capture_image', return_value=im), patch.object(module, 'visible_text', return_value=''), patch.object(module, 'hold_keys', side_effect=held) as actions, patch.object(module.shutil, 'which', return_value='/usr/bin/xdotool'), patch.object(module.subprocess, 'run', return_value=R()):
+                result = module.check(pilot, rid, 'Move', 'Moves', {'action':'hold','keys':['Right'],'seconds':1}, dismiss_key='Return')
+            self.assertEqual(actions.call_args_list[0].args[1], ['Return'])
+            self.assertEqual(actions.call_args_list[1].args[1], ['Right'])
+            self.assertIn('dismissal', result['action_result'])
+            self.assertEqual(len(pilot.report(rid)['steps'][0]['facts']['evidence']), 4)
+
+    def test_read_and_start_cannot_interleave_with_action(self):
+        with module._action_lock:
+            with self.assertRaisesRegex(RuntimeError, 'in progress'):
+                module.start_ready(None, 'Test', 'Scenario', 42)
+            with self.assertRaisesRegex(RuntimeError, 'in progress'):
+                module.read_value(None, 'run', [0, 0, .1, .1])
+
+    def test_ready_blocks_black_and_accepts_nonblack(self):
+        from PIL import Image
+        black = Image.new('RGB', (40, 40))
+        with tempfile.TemporaryDirectory() as temp, patch.dict('os.environ', {'DISPLAY': ':7'}):
+            pilot = module.Pilot(temp)
+            with patch.object(module, 'focus_window'), patch.object(module, 'capture_image', return_value=black), patch.object(module.time, 'sleep'), patch.object(module.time, 'monotonic', side_effect=[0, 0, 9]):
+                result = json.loads(module.start_ready(pilot, 'Test', 'Scenario', 42))
+            self.assertFalse(result['ready']); self.assertIn('black', result['reason'])
+            frame = Image.new('RGB', (40, 40), 'white')
+            with patch.object(module, 'focus_window'), patch.object(module, 'capture_image', return_value=frame), patch.object(module, 'visible_text', return_value=''), patch.object(module.time, 'sleep'):
+                result = module.start_ready(pilot, 'Test', 'Scenario', 42)
+            self.assertTrue(result['action_result']['ready'])
+        self.assertEqual(module.hold_spec({'action':'hold', 'keys':'Space', 'seconds':.1})[0], ['space'])
 
 if __name__ == '__main__': unittest.main()
