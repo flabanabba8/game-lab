@@ -10,7 +10,7 @@ It equips the active host model with domain knowledge, not a separate LLM servic
 
 ## Domain contract and important limits
 
-Select the app and window, then use the atomic check for each expectation. It captures before, during and after one approved input; measurements and OCR are fallible hints, and a vision-capable model must inspect the images. Record verdicts separately. POSIX, X11, xdotool and Pillow are required; optional Tesseract supplies untrusted panel text.
+Select the app and window, then submit the checklist to `playtest_run` under one approval and relay its measured report. Batch results are experimental, and its heuristics can be wrong; saved evidence requires review before reliance. `playtest_check` remains available for exploration. POSIX, X11, xdotool and Pillow are required; optional Tesseract supplies untrusted panel text.
 
 ## Knowledge map
 

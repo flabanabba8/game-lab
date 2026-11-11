@@ -11,6 +11,7 @@ import threading
 import time
 from pathlib import Path
 from .core import Pilot, bounded
+from . import batch
 
 _action_lock = threading.Lock()
 
@@ -27,10 +28,17 @@ TOOLS.update({
     'playtest_read_value': ('Capture and magnify a fractional window region to read a HUD value.', {'run_id': {'type': 'string'}, 'region': {'type': 'array', 'items': {'type': 'number'}, 'minItems': 4, 'maxItems': 4, 'description': '[left, top, right, bottom] as fractions of the window'}, 'step': {'type': 'integer', 'minimum': 1, 'description': 'Optional recorded check to crop instead of the current window'}, 'frame': {'type': 'string', 'description': 'Recorded frame label, such as after or one second later; default after'}}, ['run_id', 'region']),
 })
 
+TOOLS['playtest_run'] = ('Run a complete checklist on the selected game window with one approval. Relay its report without changing verdicts.', {
+    'app': {'type': 'string'}, 'window_id': {'type': 'integer', 'minimum': 1},
+    'checklist': {'type': 'array', 'minItems': 1, 'maxItems': 20, 'items': {'type': 'object', 'description': 'move/move_vertical: keys and hold; freeze: key and resume_key; value: label and expect.', 'properties': {'name': {'type': 'string'}, 'kind': {'type': 'string', 'enum': ['move', 'move_vertical', 'freeze', 'value']}, 'keys': {'type': 'array', 'items': {'type': 'string'}, 'minItems': 1, 'maxItems': 1}, 'hold': {'type': 'number', 'minimum': 0.05, 'maximum': 3}, 'key': {'type': 'string'}, 'resume_key': {'type': 'string'}, 'label': {'type': 'string'}, 'expect': {'type': 'number'}}, 'required': ['name', 'kind'], 'additionalProperties': False}},
+    'setup': {'type': 'object', 'properties': {'dismiss_keys': {'type': 'array', 'items': {'type': 'string'}, 'maxItems': 3}, 'restart_key': {'type': 'string'}, 'settle_seconds': {'type': 'number', 'minimum': 0, 'maximum': 10}}, 'additionalProperties': False}}, ['app', 'window_id', 'checklist'])
+
 def invoke(name, args, ctx, **kwargs):
     from plugins.plugin_storage import plugin_data_dir
     try:
         pilot = Pilot(plugin_data_dir('game-lab-playtest'))
+        if name == 'playtest_run':
+            return run_batch(pilot, **args)
         if name == 'playtest_start':
             return start_ready(pilot, **args)
         if name == 'playtest_check':
@@ -206,6 +214,8 @@ def with_hint(result, hint):
 
 
 def on_pre_tool_call(tool_name='', args=None, **kwargs):
+    if tool_name == 'playtest_run':
+        return {'action': 'approve', 'message': 'Playtest Pilot will focus the window and run this complete checklist, including all listed setup keys, movement holds, pause and resume keys (each tap lasts 0.08 seconds): %s. Confirm.' % str({k: (args or {}).get(k) for k in ('checklist', 'setup')}), 'rule_key': 'playtest-run'}
     if tool_name == 'playtest_check':
         return {'action': 'approve', 'message': 'Playtest Pilot will focus the selected window and perform this check, including any dismissal or resume key: %s. Confirm.' % str({k: (args or {}).get(k) for k in ('action', 'dismiss_key', 'resume_key')}), 'rule_key': 'playtest-check'}
     action = (args or {}).get('action') if tool_name == 'playtest_action' else None
@@ -551,6 +561,12 @@ def read_value(pilot, run_id, region, step=None, frame="after"):
             if result.returncode == 0: text = result.stdout.decode('utf-8', 'replace')[:2000]
         except (OSError, subprocess.SubprocessError): pass
     return image_result([('magnified region', enlarged)], {'region': region, 'source_pixels': box, 'ocr_text_untrusted': text, 'step': step, 'frame': frame if step else 'current'}, max_width=None)
+
+
+@exclusive
+def run_batch(pilot, app, window_id, checklist, setup=None):
+    import sys
+    return batch.run(pilot, app, window_id, checklist, setup or {}, sys.modules[__name__])
 
 
 def replay(pilot, ctx, run_id, source_run_id, source_step, **kwargs):

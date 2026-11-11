@@ -1,6 +1,16 @@
 # Verification
 
-Version 0.2.1 of the bundle. Dated 2026-11-11, Linux only. Earlier version-specific results are retained below.
+Version 0.2.2 of the bundle. Dated 2026-11-11, Linux only. Earlier version-specific results are retained below.
+
+## Batch playtest 0.2.2 (2026-11-11)
+
+**Experimental, not qualified.** Direct runs during development: SuperTux 0/4 complete correct reports and Packet Storm 0/2. No 0.2.2 Hermes sessions were attempted: the required three consecutive correct direct runs on each game were not reached. These runs used an owned hidden X display, X11 and disabled audio; SuperTux used software SDL, Packet Storm software Vulkan. The launcher had exited before cleanup; its STOP file was touched but did not clean up, so the owned backend and display were stopped by individual PID.
+
+The latest SuperTux run measured rightward scroll and a jump, but exact pause-frame equality failed while the menu animated and OCR could not associate the icon-only coin HUD with the word coins. Its saved frame showed 0/37 coins. The latest Packet Storm run measured W/A/S/D in the expected directions and OCR read starting integrity 100 against the false expectation 500, but exact pause-frame equality failed while the debug overlay updated. Earlier development runs included loading-state and OCR misread failures; the latter prompted a two-scale OCR agreement check. No direct run established the required complete report. These findings are not Hermes pass rates.
+
+The batch returns UNVERIFIED when the pause evidence does not meet its exact equality-and-resume test or the OCR label cannot be read; ambiguous movement can also be UNVERIFIED. Scene, blob, panel and OCR heuristics can produce false positives and should be checked against the saved frames. A restart input is setup, not an independently verified restart check. The tool is not established as dependable for these games.
+
+- **Tests:** 79 Python tests passed with managed Python, including synthetic scrolling, moving sprite, pause/resume, panel retry, OCR, and report persistence. Workflow preflight passed. These are not substitutes for complete game or Hermes tests.
 
 ## Playtest Pilot 0.2.1 (2026-11-11)
 

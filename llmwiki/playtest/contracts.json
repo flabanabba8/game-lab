@@ -256,6 +256,102 @@
         ],
         "additionalProperties": false
       }
+    },
+    {
+      "name": "playtest_run",
+      "description": "Run a complete checklist on the selected game window with one approval. Relay its report without changing verdicts.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "app": {
+            "type": "string"
+          },
+          "window_id": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "checklist": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 20,
+            "items": {
+              "type": "object",
+              "description": "move/move_vertical: keys and hold; freeze: key and resume_key; value: label and expect.",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "move",
+                    "move_vertical",
+                    "freeze",
+                    "value"
+                  ]
+                },
+                "keys": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "minItems": 1,
+                  "maxItems": 1
+                },
+                "hold": {
+                  "type": "number",
+                  "minimum": 0.05,
+                  "maximum": 3
+                },
+                "key": {
+                  "type": "string"
+                },
+                "resume_key": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "expect": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "name",
+                "kind"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "setup": {
+            "type": "object",
+            "properties": {
+              "dismiss_keys": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 3
+              },
+              "restart_key": {
+                "type": "string"
+              },
+              "settle_seconds": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 10
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "app",
+          "window_id",
+          "checklist"
+        ],
+        "additionalProperties": false
+      }
     }
   ]
 }

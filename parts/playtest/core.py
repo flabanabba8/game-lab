@@ -99,4 +99,5 @@ class Pilot:
 
     def report(self, run_id):
         data = self.load(run_id)
+        if 'batch_report' in data: return {'run_id': run_id, 'report': data['batch_report'], 'checks': data['batch_results']}
         return {**data, 'notice': 'Action acknowledgments and recorded observations are distinct; no automatic gameplay verification is performed.'}

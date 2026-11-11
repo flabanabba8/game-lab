@@ -171,3 +171,7 @@ Capture before, during and after one approved tap, hold, or click; estimate chan
 ## playtest_read_value
 
 Capture and magnify a selected fractional window region fourfold.
+
+## playtest_run
+
+Run a bounded checklist with a single approval and return a report and saved frames. Movement, pause and OCR are heuristic; uncertain measurements are UNVERIFIED.

@@ -1,5 +1,5 @@
 name: game-lab
-version: "0.2.1"
+version: "0.2.2"
 description: "Work on games with Hermes: mod a game on a safe copy, translate its text without breaking it, check character sprite sheets, and playtest it by pressing and holding keys and reporting honestly."
 author: "Game Lab contributors"
 license: GPL-3.0-or-later
@@ -21,6 +21,7 @@ provides_tools:
   - localize_validate
   - localize_export
   - localize_list_drafts
+  - playtest_run
   - playtest_start
   - playtest_action
   - playtest_check
