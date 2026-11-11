@@ -1,5 +1,7 @@
 # Game Lab
 
+![Game Lab](assets/thumbnail.jpg)
+
 Work on games with Hermes: mod a game on a safe copy, translate its text without breaking it, and playtest it by pressing and holding keys and reporting honestly.
 
 **Why one plugin:** mod it, translate it, then playtest it. Those are three steps of the same job, so they live together.
