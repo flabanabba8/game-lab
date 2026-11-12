@@ -49,7 +49,7 @@ class SuiteTest(unittest.TestCase):
         suite.register(ctx)
         self.assertEqual(sorted(ctx.tools), sorted(manifest_list('provides_tools')))
         self.assertEqual(len(ctx.tools), len(set(ctx.tools)))
-        self.assertEqual(len(ctx.tools), 24)
+        self.assertEqual(len(ctx.tools), 26)
         self.assertEqual(ctx.hooks, manifest_list('provides_hooks'))
         self.assertEqual(sorted(ctx.skills), ['game-localization-studio', 'modlab', 'playtest-pilot', 'sprite-contract'])
 

@@ -36,12 +36,16 @@ class LinkTests(unittest.TestCase):
         storage.plugin_data_dir = lambda name: (data / name).mkdir(parents=True, exist_ok=True) or data / name
         self.patch = patch.dict(sys.modules, {'plugins': types.ModuleType('plugins'), 'plugins.plugin_storage': storage})
         self.patch.start()
+        profile = data / 'game-lab-modlab' / 'modlab-profile'; profile.mkdir(parents=True)
+        (profile / 'profile.json').write_text(json.dumps({'answered': True, 'game': 'fixture', 'idea': 'x', 'single_player_offline': True, 'experience': 'some experience', 'publish': 'private', 'ai_assets': False, 'has': '', 'route': None}))
+        self.limits = patch.object(modlab, 'limits_from', lambda *a, **k: modlab.core.Limits(max_total=1 << 40, min_free=1, keep=50)); self.limits.start()
         self.game = self.root / 'game'
         (self.game / 'img' / 'characters').mkdir(parents=True)
         (self.game / 'data.txt').write_text('x')
         self.id = json.loads(modlab.invoke('modlab_create', {'source_path': str(self.game)}))['lab_id']
 
     def tearDown(self):
+        self.limits.stop()
         self.patch.stop()
         self.tmp.cleanup()
 
