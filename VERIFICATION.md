@@ -2,6 +2,12 @@
 
 Version 0.2.2 of the bundle. Dated 2026-11-11, Linux only. Earlier version-specific results are retained below.
 
+## 0.3.1 - maintainer review (2026-11-12)
+
+Maintainer review. ModLab's um_executable and rea_executable are owner settings, not tool arguments; modlab_toolkit asks for approval through the existing pre_tool_call hook (chained with Playtest's); toolkit and OCR subprocesses get a minimal environment. Re-tested: 129 offline tests, all passing; plugin preflight reports no findings.
+
+Live test through Hermes 0.23.0 (2026-11-12, own profile): the Hermes approval card (allowed once) for modlab_toolkit and playtest_run in an interactive session; ModLab interview and the real um binary; Playtest Pilot on a real Linux game (Packet Storm in an isolated virtual display): movement passed with a measured shift and pause verified once the game's animated debug overlay was hidden. Found and fixed: playtest_run returned a dict that Hermes rejects (now a JSON string); ModLab asked for approval before the interview had been done.
+
 ## Batch playtest 0.2.2 (2026-11-11)
 
 **Experimental, not qualified.** Direct runs during development: SuperTux 0/4 complete correct reports and Packet Storm 0/2. No 0.2.2 Hermes sessions were attempted: the required three consecutive correct direct runs on each game were not reached. These runs used an owned hidden X display, X11 and disabled audio; SuperTux used software SDL, Packet Storm software Vulkan. The launcher had exited before cleanup; its STOP file was touched but did not clean up, so the owned backend and display were stopped by individual PID.

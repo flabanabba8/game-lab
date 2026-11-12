@@ -118,7 +118,7 @@ def read_number(image, label):
     for sample in (image.convert('RGB'), image.convert('RGB').resize((image.width * 2, image.height * 2), Image.Resampling.NEAREST)):
         data = io.BytesIO(); sample.save(data, format='PNG')
         try:
-            result = subprocess.run([exe, 'stdin', 'stdout', '--psm', '6'], input=data.getvalue(), capture_output=True, timeout=10)
+            result = subprocess.run([exe, 'stdin', 'stdout', '--psm', '6'], input=data.getvalue(), capture_output=True, timeout=10, env={'PATH': os.environ.get('PATH', os.defpath), 'HOME': os.path.expanduser('~'), 'LANG': 'C'})
         except (OSError, subprocess.SubprocessError): return None, 'OCR failed; needs a person/model to read'
         if result.returncode: return None, 'OCR failed; needs a person/model to read'
         matches = []

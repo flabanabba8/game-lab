@@ -38,7 +38,7 @@ def invoke(name, args, ctx, **kwargs):
     try:
         pilot = Pilot(plugin_data_dir('game-lab-playtest'))
         if name == 'playtest_run':
-            return run_batch(pilot, **args)
+            return json.dumps(run_batch(pilot, **args))  # Hermes accepts a string or the multimodal envelope, never a bare dict
         if name == 'playtest_start':
             return start_ready(pilot, **args)
         if name == 'playtest_check':
@@ -221,7 +221,11 @@ def on_pre_tool_call(tool_name='', args=None, **kwargs):
     action = (args or {}).get('action') if tool_name == 'playtest_action' else None
     if isinstance(action, dict) and action.get('action') == 'hold':
         return {'action': 'approve', 'message': 'Playtest Pilot: hold %s for %s seconds in the selected app window. This raises and focuses the window. Confirm.' % ('+'.join(map(str, action.get('keys') if isinstance(action.get('keys'), list) else [action.get('keys')])), action.get('seconds')), 'rule_key': 'playtest-hold'}
-    return None
+    try:
+        from ..modlab import on_pre_tool_call as modlab_approval   # one hook for the whole suite: ModLab toolkit calls are approved here too
+    except (ImportError, ValueError):
+        return None                                               # this part loaded on its own (tests)
+    return modlab_approval(tool_name, args, **kwargs)
 
 
 def perform(pilot, ctx, run_id, intent, expected, action, record_for_replay=False, **kwargs):
@@ -351,7 +355,7 @@ def visible_text(image):
     centre = ImageEnhance.Contrast(centre).enhance(2)
     data = io.BytesIO(); centre.save(data, format='PNG')
     try:
-        result = subprocess.run([exe, 'stdin', 'stdout', '--psm', '6'], input=data.getvalue(), capture_output=True, timeout=5)
+        result = subprocess.run([exe, 'stdin', 'stdout', '--psm', '6'], input=data.getvalue(), capture_output=True, timeout=5, env={'PATH': os.environ.get('PATH', os.defpath), 'HOME': os.path.expanduser('~'), 'LANG': 'C'})
         return result.stdout.decode('utf-8', 'replace')[:2000] if result.returncode == 0 else ''
     except (OSError, subprocess.SubprocessError): return ''
 
@@ -557,7 +561,7 @@ def read_value(pilot, run_id, region, step=None, frame="after"):
     if exe:
         data = io.BytesIO(); enlarged.save(data, format='PNG')
         try:
-            result = subprocess.run([exe, 'stdin', 'stdout', '--psm', '6'], input=data.getvalue(), capture_output=True, timeout=5)
+            result = subprocess.run([exe, 'stdin', 'stdout', '--psm', '6'], input=data.getvalue(), capture_output=True, timeout=5, env={'PATH': os.environ.get('PATH', os.defpath), 'HOME': os.path.expanduser('~'), 'LANG': 'C'})
             if result.returncode == 0: text = result.stdout.decode('utf-8', 'replace')[:2000]
         except (OSError, subprocess.SubprocessError): pass
     return image_result([('magnified region', enlarged)], {'region': region, 'source_pixels': box, 'ocr_text_untrusted': text, 'step': step, 'frame': frame if step else 'current'}, max_width=None)
