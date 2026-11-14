@@ -2,6 +2,10 @@
 
 Version 0.3.2 of the bundle. Dated 2026-11-13, Linux only. Earlier version-specific results are retained below.
 
+## 0.3.2 - manifest floor (2026-11-14)
+
+The `requires_hermes` floor in `plugin.yaml` is now `>=0.22.3`, matching the catalog entry (catalog rule 14). No code changed; validation was re-run on the commit.
+
 ## 0.3.2 - playtest clips of failed checks (2026-11-13)
 
 New: `playtest_run` records the capture time of every saved evidence frame and, for each FAIL, writes a captioned H.264 MP4 into `<run id>-clips` beside the evidence (default 3 s before to 1.5 s after the check's last frame, capped to the run's first frame and end), plus one reel when there are two or more. New tool `playtest_clips` re-cuts, clips a check by name, or cuts from a recording the user made (path plus wall-clock start time; approval asked before the file is read). Caption bar drawn with Pillow (no ffmpeg drawtext needed). Version bumped 0.3.1 to 0.3.2.
