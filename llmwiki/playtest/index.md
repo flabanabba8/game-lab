@@ -10,7 +10,7 @@ It equips the active host model with domain knowledge, not a separate LLM servic
 
 ## Domain contract and important limits
 
-Select the app and window, then submit the checklist to `playtest_run` under one approval and relay its measured report. Batch results are experimental, and its heuristics can be wrong; saved evidence requires review before reliance. `playtest_check` remains available for exploration. POSIX, X11, xdotool and Pillow are required; optional Tesseract supplies untrusted panel text.
+Select the app and window, then submit the checklist to `playtest_run` under one approval and relay its measured report. Batch results are experimental, and its heuristics can be wrong; saved evidence requires review before reliance. A failed check also gets a short captioned MP4 clip (needs the user's ffmpeg; frames from the run, not full-motion video) listed in the report; `playtest_clips` re-cuts or cuts from the user's own recording. `playtest_check` remains available for exploration. POSIX, X11, xdotool and Pillow are required; optional Tesseract supplies untrusted panel text.
 
 ## Knowledge map
 

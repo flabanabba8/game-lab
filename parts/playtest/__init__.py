@@ -31,7 +31,14 @@ TOOLS.update({
 TOOLS['playtest_run'] = ('Run a complete checklist on the selected game window with one approval. Relay its report without changing verdicts.', {
     'app': {'type': 'string'}, 'window_id': {'type': 'integer', 'minimum': 1},
     'checklist': {'type': 'array', 'minItems': 1, 'maxItems': 20, 'items': {'type': 'object', 'description': 'move/move_vertical: keys and hold; freeze: key and resume_key; value: label and expect.', 'properties': {'name': {'type': 'string'}, 'kind': {'type': 'string', 'enum': ['move', 'move_vertical', 'freeze', 'value']}, 'keys': {'type': 'array', 'items': {'type': 'string'}, 'minItems': 1, 'maxItems': 1}, 'hold': {'type': 'number', 'minimum': 0.05, 'maximum': 3}, 'key': {'type': 'string'}, 'resume_key': {'type': 'string'}, 'label': {'type': 'string'}, 'expect': {'type': 'number'}}, 'required': ['name', 'kind'], 'additionalProperties': False}},
-    'setup': {'type': 'object', 'properties': {'dismiss_keys': {'type': 'array', 'items': {'type': 'string'}, 'maxItems': 3}, 'restart_key': {'type': 'string'}, 'settle_seconds': {'type': 'number', 'minimum': 0, 'maximum': 10}}, 'additionalProperties': False}}, ['app', 'window_id', 'checklist'])
+    'setup': {'type': 'object', 'properties': {'dismiss_keys': {'type': 'array', 'items': {'type': 'string'}, 'maxItems': 3}, 'restart_key': {'type': 'string'}, 'settle_seconds': {'type': 'number', 'minimum': 0, 'maximum': 10}}, 'additionalProperties': False},
+    'clips': {'type': 'object', 'description': 'Optional. A failed check gets a short MP4 by default (needs ffmpeg). Set enabled false to skip, or change the seconds kept around the failure.', 'properties': {'enabled': {'type': 'boolean'}, 'before_seconds': {'type': 'number', 'minimum': 0, 'maximum': 30}, 'after_seconds': {'type': 'number', 'minimum': 0, 'maximum': 15}, 'reel': {'type': 'boolean'}}, 'additionalProperties': False}}, ['app', 'window_id', 'checklist'])
+
+TOOLS['playtest_clips'] = ('Make or re-cut short captioned MP4 clips of failed checks from a finished playtest_run, saved beside its evidence. Built from the run\'s own frames (a slideshow, not full-motion video), or from a screen recording you made yourself if you give its path and wall-clock start time. Passing checks only get a clip if named.', {
+    'run_id': {'type': 'string'}, 'checks': {'type': 'array', 'items': {'type': 'string'}, 'minItems': 1, 'maxItems': 20, 'description': 'Check names to clip, any verdict. Omit to clip every FAIL.'},
+    'before_seconds': {'type': 'number', 'minimum': 0, 'maximum': 30, 'description': 'Seconds before the failure moment; default 3.'}, 'after_seconds': {'type': 'number', 'minimum': 0, 'maximum': 15, 'description': 'Seconds after; default 1.5.'},
+    'reel': {'type': 'boolean', 'description': 'Also join all clips in order into one reel; default true.'},
+    'recording': {'type': 'object', 'description': 'A recording the user made with their own recorder.', 'properties': {'path': {'type': 'string', 'description': 'Absolute path of the recording file'}, 'start_time': {'description': 'When the recording started: ISO 8601 time with zone, or seconds since 1970', 'anyOf': [{'type': 'string'}, {'type': 'number'}]}}, 'required': ['path', 'start_time'], 'additionalProperties': False}}, ['run_id'])
 
 def invoke(name, args, ctx, **kwargs):
     from plugins.plugin_storage import plugin_data_dir
@@ -39,6 +46,9 @@ def invoke(name, args, ctx, **kwargs):
         pilot = Pilot(plugin_data_dir('game-lab-playtest'))
         if name == 'playtest_run':
             return json.dumps(run_batch(pilot, **args))  # Hermes accepts a string or the multimodal envelope, never a bare dict
+        if name == 'playtest_clips':
+            from .clips import make_clips
+            return json.dumps(make_clips(pilot, **args))
         if name == 'playtest_start':
             return start_ready(pilot, **args)
         if name == 'playtest_check':
@@ -218,6 +228,8 @@ def on_pre_tool_call(tool_name='', args=None, **kwargs):
         return {'action': 'approve', 'message': 'Playtest Pilot will focus the window and run this complete checklist, including all listed setup keys, movement holds, pause and resume keys (each tap lasts 0.08 seconds): %s. Confirm.' % str({k: (args or {}).get(k) for k in ('checklist', 'setup')}), 'rule_key': 'playtest-run'}
     if tool_name == 'playtest_check':
         return {'action': 'approve', 'message': 'Playtest Pilot will focus the selected window and perform this check, including any dismissal or resume key: %s. Confirm.' % str({k: (args or {}).get(k) for k in ('action', 'dismiss_key', 'resume_key')}), 'rule_key': 'playtest-check'}
+    if tool_name == 'playtest_clips' and (args or {}).get('recording'):
+        return {'action': 'approve', 'message': 'Playtest Pilot will read this recording file with ffmpeg and write short clips from it into the run\'s evidence folder: %s. Nothing is uploaded. Confirm.' % str(((args or {}).get('recording') or {}).get('path')), 'rule_key': 'playtest-clips'}
     action = (args or {}).get('action') if tool_name == 'playtest_action' else None
     if isinstance(action, dict) and action.get('action') == 'hold':
         return {'action': 'approve', 'message': 'Playtest Pilot: hold %s for %s seconds in the selected app window. This raises and focuses the window. Confirm.' % ('+'.join(map(str, action.get('keys') if isinstance(action.get('keys'), list) else [action.get('keys')])), action.get('seconds')), 'rule_key': 'playtest-hold'}
@@ -568,9 +580,9 @@ def read_value(pilot, run_id, region, step=None, frame="after"):
 
 
 @exclusive
-def run_batch(pilot, app, window_id, checklist, setup=None):
+def run_batch(pilot, app, window_id, checklist, setup=None, clips=None):
     import sys
-    return batch.run(pilot, app, window_id, checklist, setup or {}, sys.modules[__name__])
+    return batch.run(pilot, app, window_id, checklist, setup or {}, sys.modules[__name__], clips)
 
 
 def replay(pilot, ctx, run_id, source_run_id, source_step, **kwargs):

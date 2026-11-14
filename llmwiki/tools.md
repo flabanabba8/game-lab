@@ -1,6 +1,6 @@
 # Actual tool contracts (Game Lab)
 
-Registered source schemas for the 21 tools of this suite, in four groups. Registration alone does not
+Registered source schemas for the 27 tools of this suite, in four groups. Registration alone does not
 establish live backend readiness. The exact argument schemas are in `modlab/contracts.json`,
 `localization/contracts.json`, `playtest/contracts.json` and `sprites/contracts.json`.
 
@@ -187,3 +187,9 @@ Capture and magnify a selected fractional window region fourfold.
 ## playtest_run
 
 Run a bounded checklist with a single approval and return a report and saved frames. Movement, pause and OCR are heuristic; uncertain measurements are UNVERIFIED.
+
+## playtest_clips
+
+Cut short captioned MP4 clips of failed checks from a finished `playtest_run` (the same run id), saved in a `<run_id>-clips` folder next to the run's evidence in the `game-lab-playtest` plugin-data folder. `playtest_run` already does this for every FAIL unless called with `clips: {"enabled": false}`; use this tool to change the seconds, to clip a check by name (any verdict, so a passing check only gets a clip when named), to re-cut, or to cut from a screen recording the user made themselves. Inputs: `run_id` (required), `checks` (names; omit for every FAIL), `before_seconds` (0 to 30, default 3), `after_seconds` (0 to 15, default 1.5), `reel` (default true: one `reel-all-failures.mp4` when two or more clips), `recording` (`path` of the user's file and `start_time`, an ISO 8601 time with zone or seconds since 1970; approval is asked before a recording is read).
+
+The failure moment is the capture time of the check's last saved frame. The window is capped to the run's first frame and its end. Without a recording the clip is a slideshow of the run's own frames, each held for the time that really passed before the next, drawn with a bar giving the check name, what was expected and what was seen: honest wording is "frames from the run", not full-motion video. With a recording the clip is cut from it at the offset between the recording's start time and the failure (audio is dropped). Output is H.264, yuv420p, even dimensions, owner-only files. Each failed check gains a `clip` object (file, start_seconds, end_seconds, duration_seconds, method) in the result and report. Uses the user's own `ffmpeg` on PATH; if it is missing the result says so, `clips` is empty and the report is otherwise complete. Nothing is uploaded and the screen is never recorded by the plugin. Runs made before this version have no frame times and cannot be clipped.

@@ -135,19 +135,47 @@ def read_number(image, label):
     return readings[0], 'OCR read %s near %s' % (readings[0], label)
 
 
-def run(pilot, app, window_id, checklist, setup, api):
+def expected_text(check):
+    kind = check['kind']
+    if kind == 'value': return '%s reads %s' % (check['label'], check['expect'])
+    if kind == 'freeze': return 'the picture freezes after %s and moves again after %s' % (check['key'], check['resume_key'])
+    key = check['keys'][0]
+    direction = {'right':'right','d':'right','left':'left','a':'left','up':'up','w':'up','space':'up','down':'down','s':'down'}[key.lower()]
+    return 'the scene or character moves %s while %s is held for %s s' % (direction, key, check['hold'])
+
+
+def render_report(entries, clips=None):
+    lines = []
+    for x in entries:
+        line = '%s: %s \u2014 %s' % (x['name'], x['verdict'], x['reason'])
+        if x.get('clip'):
+            c = x['clip']
+            line += ' [clip: %s, %.1f s to %.1f s of the run, %s]' % (c['file'], c['start_seconds'], c['end_seconds'], c['method'])
+        lines.append(line)
+    if clips and clips.get('message'): lines.append('Clips: ' + clips['message'])
+    if clips and clips.get('reel'): lines.append('Reel of all failures: ' + clips['reel']['file'])
+    for item in (clips or {}).get('skipped', []): lines.append('Clip skipped for %s: %s' % (item['check'], item['reason']))
+    return '\n'.join(lines)
+
+
+def run(pilot, app, window_id, checklist, setup, api, clips=None):
     validate(checklist, setup, api.hold_spec)
+    clips = {} if clips is None else clips
+    if not isinstance(clips, dict) or set(clips) - {'enabled', 'before_seconds', 'after_seconds', 'reel', 'recording'}: raise ValueError('Invalid clips settings')
     api.focus_window(window_id)
     api.capture_image(window_id)  # verify capture before any input
     run_id = pilot.start(app, 'Batch playtest', window_id)['run_id']
     tap = lambda key: api.hold_keys(window_id, api.hold_spec({'keys': key, 'seconds': .08})[0], .08)
-    capture = lambda: api.capture_image(window_id)
+    stamps = {}
+    def capture():
+        image = api.capture_image(window_id); stamps[id(image)] = time.time(); return image
+    started = time.time()
     if setup.get('restart_key'): tap(setup['restart_key'])
     time.sleep(setup.get('settle_seconds', 2))
     ordered = sorted(enumerate(checklist), key=lambda item: item[1]['kind'] != 'value')
     results = []
     for index, check in ordered:
-        frames = []
+        frames = []; stamps.clear()
         kind = check['kind']
         try:
             before = capture(); frames.append(before)
@@ -188,15 +216,28 @@ def run(pilot, app, window_id, checklist, setup, api):
                     if measured: break
                     before = after
                 verdict = 'PASS' if measured is True else 'FAIL' if measured is False else 'UNVERIFIED'
-            evidence = []
+            evidence = []; frame_times = []
             for n, image in enumerate(frames):
+                frame_times.append(round(stamps.get(id(image), frame_times[-1] if frame_times else time.time()), 3))
                 path = pilot.root / ('%s-batch%d-frame%d.png' % (run_id, index, n))
                 with os.fdopen(os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600), 'wb') as out: image.save(out, format='PNG')
                 evidence.append(path.name)
-            results.append((index, {'name': check['name'], 'verdict': verdict, 'reason': reason, 'evidence': evidence}))
+            results.append((index, {'name': check['name'], 'verdict': verdict, 'reason': reason, 'evidence': evidence, 'expected': expected_text(check), 'frame_times': frame_times}))
         except (ValueError, OSError, RuntimeError, subprocess.SubprocessError) as exc:
-            results.append((index, {'name': check['name'], 'verdict': 'UNVERIFIED', 'reason': str(exc), 'evidence': []}))
+            results.append((index, {'name': check['name'], 'verdict': 'UNVERIFIED', 'reason': str(exc), 'evidence': [], 'expected': expected_text(check), 'frame_times': []}))
     results.sort(); entries = [item[1] for item in results]
-    report = '\n'.join('%s: %s — %s' % (x['name'], x['verdict'], x['reason']) for x in entries)
-    data = pilot.load(run_id); data['batch_results'] = entries; data['batch_report'] = report; pilot.save(run_id, data)
-    return {'run_id': run_id, 'report': report, 'checks': entries}
+    report = render_report(entries)
+    data = pilot.load(run_id); data['batch_results'] = entries; data['batch_report'] = report; data['batch_started'] = started; data['batch_ended'] = time.time(); pilot.save(run_id, data)
+    out = {'run_id': run_id, 'report': report, 'checks': entries}
+    if clips.get('enabled', True):
+        from . import clips as cut
+        try:
+            made = cut.make_clips(pilot, run_id, before_seconds=clips.get('before_seconds'), after_seconds=clips.get('after_seconds'), reel=clips.get('reel', True), recording=clips.get('recording'), automatic=True)
+        except (ValueError, RuntimeError, OSError) as exc:
+            made = {'error': 'Clips were not made: %s. The report above is complete.' % exc}
+            data = pilot.load(run_id); data['batch_report'] = report + '\n' + made['error']; pilot.save(run_id, data)
+            out['report'] = data['batch_report']
+        if made:
+            out['clips'] = made
+            if made.get('report'): out['report'] = made['report']; out['checks'] = pilot.load(run_id)['batch_results']
+    return out

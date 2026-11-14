@@ -48,7 +48,7 @@
           },
           "action": {
             "type": "object",
-            "description": "The native computer_use action as an object, for example {\"action\": \"key\", \"keys\": \"Right\"} or {\"action\": \"key\", \"keys\": \"space\", \"delivery_mode\": \"foreground\", \"bring_to_front\": true}. Do not wrap it again and do not repeat run_id or app inside it. For movement or jumps in an action game use {\"action\": \"hold\", \"keys\": [\"Right\"], \"seconds\": 1.5} (up to three keys together, at most 3 seconds): a tap is too short for a game that reads held keys, For a one-shot pause key use a short tap or 0.05–0.1 second hold, then wait and inspect; holding it longer can toggle pause repeatedly. A hold requests a capture one quarter of the way through; slow capture can arrive after key release, so inspect the image rather than assuming its timing. A wait action with seconds from 0 to 30 captures the window after the delay. Input actions request a fresh capture; its pixel size is in the result and click coordinates use that frame."
+            "description": "The native computer_use action as an object, for example {\"action\": \"key\", \"keys\": \"Right\"} or {\"action\": \"key\", \"keys\": \"space\", \"delivery_mode\": \"foreground\", \"bring_to_front\": true}. Do not wrap it again and do not repeat run_id or app inside it. For movement or jumps in an action game use {\"action\": \"hold\", \"keys\": [\"Right\"], \"seconds\": 1.5} (up to three keys together, at most 3 seconds): a tap is too short for a game that reads held keys, For a one-shot pause key use a short tap or 0.05\u20130.1 second hold, then wait and inspect; holding it longer can toggle pause repeatedly. A hold requests a capture one quarter of the way through; slow capture can arrive after key release, so inspect the image rather than assuming its timing. A wait action with seconds from 0 to 30 captures the window after the delay. Input actions request a fresh capture; its pixel size is in the result and click coordinates use that frame."
           },
           "record_for_replay": {
             "type": "boolean"
@@ -343,12 +343,102 @@
               }
             },
             "additionalProperties": false
+          },
+          "clips": {
+            "type": "object",
+            "description": "Optional. A failed check gets a short MP4 by default (needs ffmpeg). Set enabled false to skip, or change the seconds kept around the failure.",
+            "properties": {
+              "enabled": {
+                "type": "boolean"
+              },
+              "before_seconds": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 30
+              },
+              "after_seconds": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 15
+              },
+              "reel": {
+                "type": "boolean"
+              }
+            },
+            "additionalProperties": false
           }
         },
         "required": [
           "app",
           "window_id",
           "checklist"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "playtest_clips",
+      "description": "Make or re-cut short captioned MP4 clips of failed checks from a finished playtest_run, saved beside its evidence. Built from the run's own frames (a slideshow, not full-motion video), or from a screen recording you made yourself if you give its path and wall-clock start time. Passing checks only get a clip if named.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "run_id": {
+            "type": "string"
+          },
+          "checks": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "maxItems": 20,
+            "description": "Check names to clip, any verdict. Omit to clip every FAIL."
+          },
+          "before_seconds": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 30,
+            "description": "Seconds before the failure moment; default 3."
+          },
+          "after_seconds": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 15,
+            "description": "Seconds after; default 1.5."
+          },
+          "reel": {
+            "type": "boolean",
+            "description": "Also join all clips in order into one reel; default true."
+          },
+          "recording": {
+            "type": "object",
+            "description": "A recording the user made with their own recorder.",
+            "properties": {
+              "path": {
+                "type": "string",
+                "description": "Absolute path of the recording file"
+              },
+              "start_time": {
+                "description": "When the recording started: ISO 8601 time with zone, or seconds since 1970",
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "path",
+              "start_time"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "run_id"
         ],
         "additionalProperties": false
       }
