@@ -51,7 +51,7 @@ class SuiteTest(unittest.TestCase):
         self.assertEqual(len(ctx.tools), len(set(ctx.tools)))
         self.assertEqual(len(ctx.tools), 29)
         self.assertEqual(ctx.hooks, manifest_list('provides_hooks'))
-        self.assertEqual(sorted(ctx.skills), ['game-localization-studio', 'modlab', 'playtest-pilot', 'sprite-contract'])
+        self.assertEqual(sorted(ctx.skills), ['game-localization-studio', 'game-translation-pipeline', 'localization-audit', 'localization-overflow', 'modlab', 'playtest-pilot', 'sprite-contract', 'translation-proofreading'])
 
     def test_tool_reference_lists_exactly_the_tools(self):
         text = (root / 'llmwiki' / 'tools.md').read_text()
