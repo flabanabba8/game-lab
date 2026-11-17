@@ -59,7 +59,10 @@ which rows were caught and fixed.
 
 ## Companion skills
 
-[localization-overflow](../localization-overflow/SKILL.md) measures per-game width and row budgets to avoid UI overflow.
+- [localization-overflow](../localization-overflow/SKILL.md) estimates per-game width and row budgets to help avoid UI overflow.
+- [game-translation-pipeline](../game-translation-pipeline/SKILL.md) merges and checks translation data and project chunks.
+- [localization-audit](../localization-audit/SKILL.md) checks names and terms against a project glossary.
+- [translation-proofreading](../translation-proofreading/SKILL.md) reviews already-translated English for clarity and consistency.
 
 ## Unity Mono: translation review
 

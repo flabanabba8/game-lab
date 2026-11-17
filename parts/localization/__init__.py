@@ -31,6 +31,13 @@ def register(ctx):
     if hasattr(ctx, 'register_skill'):
         from pathlib import Path
         ctx.register_skill('game-localization-studio', Path(__file__).parents[2] / 'skills/game-localization-studio/SKILL.md', description='Produce source-addressed game translation drafts for RPG Maker MV/MZ and Unity (Mono) games')
+        for name, description in (
+            ('localization-overflow', 'Estimate text width and row budgets and check translated rows'),
+            ('game-translation-pipeline', 'Merge, audit, and chunk game translation data'),
+            ('localization-audit', 'Audit game translation names and terms against a glossary'),
+            ('translation-proofreading', 'Proofread English game translations for clarity and consistency'),
+        ):
+            ctx.register_skill(name, Path(__file__).parents[2] / 'skills' / name / 'SKILL.md', description=description)
     for name, (description, properties, required) in TOOLS.items():
         ctx.register_tool(name=name, toolset='game_localization_studio', schema={'name': name, 'description': description,
             'parameters': {'type': 'object', 'properties': properties, 'required': required, 'additionalProperties': False}},
