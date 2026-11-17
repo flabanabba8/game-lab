@@ -1,15 +1,23 @@
 ---
 name: game-localization-studio
-description: Produce source-addressed game translation drafts. Use for this domain with its matching plugin tools.
+description: Produce source-addressed game translation drafts for RPG Maker MV/MZ and Unity (Mono) games. Use for this domain with its matching plugin tools.
 ---
 
 First list the working folder (`ls -lR`) and find the game file the user means (RPG Maker data JSON such as Map001.json, System.json, CommonEvents.json); do not ask for a path that is already in the folder, and use its absolute path with `localize_inspect`.
+
+Unity game (a folder holding `<Game>_Data/` with `globalgamemanagers` and `.assets` files): pass the absolute game
+folder itself to `localize_inspect`, not a file, and read [Unity games](../../llmwiki/localization/unity.md) first.
+The row and column rules below are RPG Maker only. For Unity: tell the user the counts per file and kind and the
+blocked name matches; for more than a few dozen units use `localize_units_file` and `localize_import_translations`
+instead of one call per unit; keep every `{0}` placeholder and `<tag>`; after `localize_export` say that the result
+is a folder of patched copies to be put over the same files in a COPY of the game, that the plugin re-read them but
+started nothing, and that fonts, fit and lookup-key risks are unverified until it is played.
 
 On first use read the [bundled LLM wiki](../../llmwiki/localization/index.md), then load
 only the domain references needed for this task.
 
 
-Ask the game/engine/data format, source/target languages, glossary, font and message-box constraints. Current importer targets RPG Maker MV/MZ message JSON; preserve control tokens and row budgets. Translate in the active user-selected host model or accept user translations; no translation provider is required. Another engine needs its actual importer/exporter contract and round-trip fixture, not renamed RPG Maker fields. Export separately and verify in the target game; token checks do not prove translation quality.
+Ask the game/engine/data format, source/target languages, glossary, font and message-box constraints. Importers: RPG Maker MV/MZ message JSON (preserve control tokens and row budgets) and Unity Mono player folders with loose serialized files. Translate in the active user-selected host model or accept user translations; no translation provider is required. Another engine needs its actual importer/exporter contract and round-trip fixture, not renamed RPG Maker fields. Export separately and verify in the target game; token checks do not prove translation quality.
 
 When the user only asks to translate a game and keep it working, do not interrogate
 them. If no message-box size is given, assume RPG Maker's standard four-line message
@@ -39,7 +47,7 @@ remaining live verification. Never substitute placeholder success, silently swit
 providers or claim unimplemented platform support. Preserve unrelated work, pauses
 and accepted assets; publication requires separate explicit authorization.
 
-Available domain tools: `localize_inspect`, `localize_get`, `localize_translate`, `localize_validate`, `localize_export`, `localize_list_drafts`.
+Available domain tools: `localize_inspect`, `localize_get`, `localize_translate`, `localize_validate`, `localize_export`, `localize_list_drafts`, `localize_units_file`, `localize_import_translations`.
 
 Row width: `localize_inspect` returns `row_width_limit_chars`, the widest original row in the file (the game's author
 already fitted that on screen; pass `message_columns` to set another width). `localize_validate` reports every translated

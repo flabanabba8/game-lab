@@ -1,6 +1,6 @@
 name: game-lab
-version: "0.3.2"
-description: "Work on games with Hermes: mod a game on a safe copy, translate its text without breaking it, check character sprite sheets, and playtest it by pressing and holding keys and reporting honestly, with a short clip of each failed check."
+version: "0.4.0"
+description: "Work on games with Hermes: mod a game on a safe copy, translate its text without breaking it (RPG Maker MV/MZ and Unity Mono builds), check character sprite sheets, and playtest it by pressing and holding keys and reporting honestly, with a short clip of each failed check."
 author: "Game Lab contributors"
 license: GPL-3.0-or-later
 requires_hermes: ">=0.22.3"
@@ -23,6 +23,8 @@ provides_tools:
   - localize_validate
   - localize_export
   - localize_list_drafts
+  - localize_units_file
+  - localize_import_translations
   - playtest_run
   - playtest_start
   - playtest_action
