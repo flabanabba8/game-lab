@@ -18,8 +18,8 @@ metadata:
 Before writing translated rows, measure the target game's text-box budgets from
 its own data, then keep every translated row inside those budgets. The
 localization plugin counts **rows, not pixels**, and the default window does
-**not** wrap long lines, so width and row count are hard limits, not soft
-preferences. This skill measures both per project and wraps accordingly.
+**not** wrap long lines, so width and row count are useful constraints. This skill estimates both per
+project; actual fit must be checked in the game.
 
 It does not translate for you; it sets the dimensional guardrails that
 `game-localization-studio` then fills. It is not for prose editing, tone, or
@@ -31,7 +31,7 @@ There is no universal char count or row count. Each game's window is sized
 differently, so hardcoding a number (e.g. "35 chars", "4 rows") from one game
 and reusing it in another produces false overflows or false safety. Derive the
 budget from the project's own source rows — the author already fitted the
-widest row on screen, and the row count is the window the game ships.
+widest row on screen, and the source rows provide a starting estimate.
 
 ## When to Use
 
@@ -46,9 +46,8 @@ conventions, or building the translation itself. Those are that skill's job.
 ## The two budgets
 
 **WIDTH (chars per row)** = the widest ORIGINAL (source) row in the unit's
-file, in characters. The author fitted that many chars on screen, so a
-translated row may not be wider. English glyphs are narrower than CJK, so this
-budget is generous for English but is the proven value. Measure it **per file**
+file, in characters. Treat this as a conservative character-count estimate for translated rows,
+not proof of visual fit: fonts and glyph widths vary. Measure it **per file**
 (per message group) — different windows have different widths; a single global
 max is wrong.
 
@@ -68,7 +67,9 @@ terminal(command="python3 <skill>/scripts/measure_dimensions.py <draft.json>")
 ```
 
 It prints per-file WIDTH, the global WIDTH/HEIGHT limits, and the width/height
-distribution so you can see whether budgets are uniform or window-specific. For
+distribution. It checks each stored translation against its file width and source
+row count, reports violations, and exits with status 1 if any are found. It skips
+untranslated units; check the reported count for coverage. For
 the NeetGirlsLife Unity Mono draft this yields WIDTH=105 for
 `textasset:text`, and per-file widths down to single-digit chars for small UI
 labels; HEIGHT maxes at 20 rows with most units at 1-3.
@@ -86,27 +87,29 @@ labels; HEIGHT maxes at 20 rows with most units at 1-3.
    WIDTH.
 5. Never repeat a sentence across two rows; a row must not trail into the next
    with a dangling conjunction.
-6. Use escaped backslash-n (`\n`, two characters) for line breaks in the stored
-   translation — never a real newline (chr 10).
+6. Use actual newline characters for line breaks in the draft translation. In
+   JSON files these are represented by the JSON escape `\n`.
 
 ## Pitfalls
 
 - Measuring one global max and applying it everywhere: per-file widths vary
   widely (105 down to single digits in the same draft).
-- Treating WIDTH as a soft preference: the default window does not wrap, so a
-  row wider than the widest source row overflows.
+- Treating the estimated WIDTH as proof of fit: actual glyphs and windows vary.
 - Counting pixels or font size: the plugin counts rows, so a "fine" pixel width
   can still overflow its row budget.
 - Splitting one source row across two target rows to shorten each line: this
   raises the row count past HEIGHT and overflows the bottom.
-- Using a real newline instead of escaped `\n`: the stored translation breaks.
+- Confusing a JSON-escaped newline (`\n`) with a literal backslash followed by
+  `n`: the latter is not counted as a line break by the plugin.
 
 ## Verification
 
 After wrapping, re-run `measure_dimensions.py` and confirm no unit's stored
 translation has a row wider than its file's WIDTH or more rows than its source.
 Run `localize_validate` from `game-localization-studio`; if it flags a wide row,
-fix that row and validate again. Report which rows were caught and fixed.
+fix that row and validate again. These character and row budgets are estimates;
+fonts, proportional glyph widths, box dimensions and wrapping require in-game
+verification. Report which rows were caught and fixed.
 
 ## Verified state (this draft)
 
@@ -115,5 +118,4 @@ draft the measured budgets are **WIDTH=105 chars**, **HEIGHT=20 rows** (per-file
 WIDTH ranges 2–105; most units are 1–3 source rows). The full translation is
 imported and `localize_validate` reports `structural_ok: true`, 3424/3424
 translated, 0 untranslated, 0 blocked; the only flags are English rows wider
-than their Japanese source rows (expected JP→EN length growth), all inside the
-generous ~1.4× allowance.
+than their Japanese source rows (expected JP→EN length growth), the actual rendering was not checked by the script.
