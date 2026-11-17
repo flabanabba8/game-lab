@@ -27,7 +27,7 @@ Work on games with Hermes: mod a game on a safe copy, translate its text without
 | Playtest Pilot (experimental) | Run an approved checklist and report measured verdicts, or explore a single input and record an observation. | `playtest_run`, `playtest_start`, `playtest_check`, `playtest_read_value`, `playtest_action`, `playtest_replay`, `playtest_observe`, `playtest_report`, `playtest_clips` |
 | Sprites | Inspect an RPG Maker MV character sheet PNG (single-character `$` sheet or the ordinary eight-character sheet): grid, frame size, empty cells, alpha bounds. Preview one walk row as a separate animated GIF. Pairs with ModLab: before a mod that replaces character art is applied, check the sheet. Needs Pillow. | `sprite_inspect_mv`, `sprite_preview_mv` |
 
-29 tools, one hook (`pre_tool_call`, which asks for approval before each batch, atomic check and legacy held key), four skills (`modlab`, `game-localization-studio`, `playtest-pilot`, `sprite-contract`) and one Desktop page for the translation drafts.
+29 tools, one hook (`pre_tool_call`, which asks for approval before each batch, atomic check and legacy held key), five skills (`modlab`, `game-localization-studio`, `localization-overflow`, `playtest-pilot`, `sprite-contract`) and one Desktop page for the translation drafts.
 
 ModLab and Game Localization Studio are also published on their own. Playtest Pilot began from the stand-alone 0.3.0 plugin and now has bundle-specific atomic tools and approval handling. Sprites is the stand-alone Sprite Contract 0.1.0 plugin. The bundle also connects the parts through two text hints:
 

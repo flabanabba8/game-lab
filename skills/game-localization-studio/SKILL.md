@@ -56,3 +56,11 @@ row wider than that. Rows of one message are ONE sentence split across rows by t
 row, each row within the width and the message within the row limit, with no sentence repeated in two rows. Do not put the
 whole message into the first row. When validate reports a wide row, fix that row and validate again; say in the report
 which rows were caught and fixed.
+
+## Companion skills
+
+[localization-overflow](../localization-overflow/SKILL.md) measures per-game width and row budgets to avoid UI overflow.
+
+## Unity Mono: translation review
+
+For a Unity Mono draft, use `localize_units_file` and `localize_import_translations` for bulk work. A successful import checks the source string but does not prove the translation matches it: spot-check the stored translations against the intended IDs and source text, and check the remaining untranslated and blocked units before export. Preserve placeholders and tags, maintain a glossary, and keep the source tone. See [Unity Mono translation notes](references/unity-mono-text-translation.md) for the hand-translation observations and [Unity binary asset notes](references/unity-binary-assets.md) for the earlier extraction experiment; both describe a particular project and are not universal engine contracts.
