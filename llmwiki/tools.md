@@ -1,6 +1,6 @@
 # Actual tool contracts (Game Lab)
 
-Registered source schemas for the 27 tools of this suite, in four groups. Registration alone does not
+Registered source schemas for the 29 tools of this suite, in four groups. Registration alone does not
 establish live backend readiness. The exact argument schemas are in `modlab/contracts.json`,
 `localization/contracts.json`, `playtest/contracts.json` and `sprites/contracts.json`.
 
@@ -83,9 +83,11 @@ handler was executed. This is interface evidence, not live capability testing.
 
 ## localize_inspect
 
-Import an editable RPG Maker MV/MZ JSON draft. Message lines, choices and selected database fields are supported; script text is not.
+Import an editable translation draft from an RPG Maker MV/MZ JSON file (message lines, choices and selected database fields; script text is not supported) or from a Unity game folder (Mono build with loose `.assets` files: JSON text assets, component/ScriptableObject string fields and `Assembly-CSharp` string literals). The files that hold text are copied into the draft; the game folder is only read.
 
-Inputs: `source_path` (required), `message_rows` (optional), `include_system_types` (optional), `message_columns` (optional; default is the widest original message row, and `localize_validate` reports translated rows wider than it).
+Inputs: `source_path` (required; a JSON file, or a Unity game folder or its `_Data` folder). RPG Maker only: `message_rows`, `include_system_types`, `message_columns` (default is the widest original message row, and `localize_validate` reports translated rows wider than it). Unity only: `text_filter` (`cjk` default, `non_ascii`, `all`), `allow_name_matches` (default false: a string equal to a game-object or asset name is blocked, because code may look it up by name).
+
+Unity result: `units`, `source_characters`, `files` (units per file), `kinds` (units per carrier, e.g. `textasset:text`, `mono:TMPro.TextMeshProUGUI`, `code:string`), `blocked_name_matches`, `notes`, `coverage`.
 
 ## localize_get
 
@@ -107,9 +109,21 @@ Inputs: `draft_id` (required).
 
 ## localize_export
 
-Export a new translated JSON file inside the plugin data directory; the source is never overwritten.
+Export translated copies inside the plugin data directory: one JSON file for RPG Maker, or a folder of patched `.assets`/`.dll` files for Unity (only the files that changed, under their original relative names). The source is never overwritten and no game is started. Each patched Unity file is re-read before it is written: object table, untouched objects byte for byte, and every changed string.
 
 Inputs: `draft_id` (required).
+
+## localize_units_file
+
+Write the translatable units of a draft to `units.jsonl` in the draft folder, one JSON object per line (`id`, `kind`, `context`, `group`, `source`, `translation`), for a translator or a translation worker to fill in. Blocked units are left out. Works for both engines.
+
+Inputs: `draft_id` (required), `only_untranslated` (optional).
+
+## localize_import_translations
+
+Read translations from a JSONL file (one `{"id", "translation"}` object per line; an optional `"source"` must equal the unit's source, which catches a misaligned or foreign file) into a draft. Every line gets the same checks as `localize_translate`; rejected lines are reported with their line number and reason and the rest are saved. Lines without a translation are counted and skipped.
+
+Inputs: `draft_id` (required), `path` (required, absolute).
 
 ## localize_list_drafts
 

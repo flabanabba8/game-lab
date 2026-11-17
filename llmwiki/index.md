@@ -18,11 +18,11 @@ a maintained plugin, bundled with its behaviour unchanged apart from the hints d
 | Part | Use it to | Tools | Start here |
 |---|---|---|---|
 | ModLab | Mod a game on a safe copy, with Universal Modder and Reverse Engineer Anything | `modlab_*` (8) | [index](modlab/index.md), [task guide](modlab/task-guide.md) |
-| Game Localization Studio | Translate RPG Maker message text without breaking control codes or row budgets | `localize_*` (6) | [index](localization/index.md), [task guide](localization/task-guide.md) |
+| Game Localization Studio | Translate RPG Maker message text, or the text of a Unity Mono build, without breaking control codes, placeholders or file structure | `localize_*` (8) | [index](localization/index.md), [task guide](localization/task-guide.md) |
 | Playtest Pilot | Press and hold keys in a window you select, capture after every action, report honestly | `playtest_*` (5) and the `pre_tool_call` hook | [index](playtest/index.md), [task guide](playtest/task-guide.md) |
 | Sprites | Check an RPG Maker MV character sheet grid and preview a walk row, for example before a mod replaces character art | `sprite_*` (2) | [index](sprites/index.md), [task guide](sprites/task-guide.md) |
 
-- [Actual tool contracts](tools.md): the 21 registered tools and the one hook. Exact argument schemas are in
+- [Actual tool contracts](tools.md): the 29 registered tools and the one hook. Exact argument schemas are in
   `modlab/contracts.json`, `localization/contracts.json`, `playtest/contracts.json` and `sprites/contracts.json`.
 - Skills: `modlab`, `game-localization-studio`, `playtest-pilot` and `sprite-contract` (folder `skills/`).
 - Links between parts (text only, nothing starts by itself): `modlab_inspect` adds a report-only `sprite_check`

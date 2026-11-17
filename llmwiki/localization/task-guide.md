@@ -10,7 +10,7 @@ Resolve exact parameter shapes from [tool contracts](../tools.md) and
 
 ## Setup decisions
 
-Confirm RPG Maker MV/MZ JSON, target language/glossary/font and the actual game message-row budget. Other formats need their own importer contract. Source text goes to the active host for translation, but the plugin makes no model/API calls. Opt-in system type names can affect custom scripts.
+Confirm the engine: RPG Maker MV/MZ JSON (then also the actual game message-row budget) or a Unity Mono build (then read [Unity games](unity.md)); target language, glossary and font. Other formats need their own importer contract. Source text goes to the active host for translation, but the plugin makes no model/API calls. Opt-in system type names can affect custom scripts.
 
 ## Worked task flow
 

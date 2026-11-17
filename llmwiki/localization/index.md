@@ -10,12 +10,14 @@ It equips the active host model with domain knowledge, not a separate LLM servic
 
 ## Domain contract and important limits
 
-Ask the game/engine/data format, source/target languages, glossary, font and message-box constraints. Current importer targets RPG Maker MV/MZ message JSON; preserve control tokens and row budgets. Translate in the active user-selected host model or accept user translations; no translation provider is required. Another engine needs its actual importer/exporter contract and round-trip fixture, not renamed RPG Maker fields. Export separately and verify in the target game; token checks do not prove translation quality.
+Ask the game/engine/data format, source/target languages, glossary, font and message-box constraints. Importers: RPG Maker MV/MZ message JSON (preserve control tokens and row budgets) and Unity Mono player folders with loose serialized files (preserve `{0}` placeholders and `<tags>`; see [Unity games](unity.md)). Translate in the active user-selected host model or accept user translations; no translation provider is required. Another engine needs its actual importer/exporter contract and round-trip fixture, not renamed RPG Maker fields. Export separately and verify in the target game; token checks do not prove translation quality.
 
 ## Knowledge map
 
 - [Setup and task guide](task-guide.md): concrete setup choices, worked flow,
   failure diagnosis and acceptance limits. Read before planning execution.
+- [Unity games](unity.md): what the Unity importer reads, how the patched files are
+  written, the bulk JSONL route and what stays unverified. Read for any Unity game.
 - [Registration schemas](contracts.json): exact current tool argument contracts.
 
 
