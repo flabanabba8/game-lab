@@ -1,6 +1,14 @@
 # Verification
 
-Version 0.4.0 of the bundle. Dated 2026-11-17, Linux only. Earlier version-specific results are retained below.
+Version 0.5.0 of the bundle. Dated 2026-11-21, Linux only. Earlier version-specific results are retained below.
+
+## 0.5.0 - Godot 4 importer for Game Localization Studio (2026-11-21)
+
+New: `localize_inspect` accepts a Godot 4 `.pck` (GDPC format 2 or 3, unencrypted) and drafts Dialogue Manager line text and speaker names, strings in uncompressed binary scenes/resources, and String constants of compiled scripts; `localize_export` writes one new `.pck` (format 3). Strings that are both a scene/resource string and a script constant are blocked until `allow_name_matches`. Helpers for lossless-WebP `.ctex` textures. Pure Python; compiled scripts use the standard library `compression.zstd` (Python 3.14+). New wiki page `llmwiki/localization/godot.md`.
+
+- **Tested (offline, Python 3.14, Linux):** 6 new tests in `tests/test_godot.py`, all passing, on a pack built in the test (no game files bundled): an unchanged repack keeps every entry's name, bytes and MD5; all carriers are found, title lines and `res://` paths are left out, and only text shared by a scene string and a script constant is blocked; BBCode/`{{variable}}` tokens must survive and single-line labels cannot gain line breaks; export leaves the source pack untouched, the new pack reads back, dialogue text and speaker change while `raw_text` stays, a lengthened scene string keeps the internal-resource offset pointing at its body, untouched entries are byte-identical, the compiled script repacks; texture decode/encode round-trips and refuses a size change; non-pack and encrypted packs are refused. `tests/test_unity.py` and `tests/test_studio.py` still pass (39 tests together).
+- **Real files (2026-11-21), one game:** a commercial Godot 4.5.1 pack (2,940 entries) with a finished human-reviewed translation. Inspect, fill every unblocked unit from that translation by source text, validate (structural OK) and export took about 72 s and 0.7 GB. The exported pack changed 245 entries; in 62 of 65 dialogue files the player-visible text equals the separately built reference pack (the 3 others differ where the same source sentence was translated differently in different scenes, because the fill matched by source text). The exported pack boots headless on the official Godot 4.5.1 Linux build with 0 error lines. The original pack was not modified.
+- **Not tested:** playing the plugin-exported pack (the reference build made with the project's own tools was played); compressed (RSCC) resources; format-2 export; Godot 4 games without Dialogue Manager; any second Godot game; a Hermes session using the tools. Translating a blocked string or one that a script compares by value can still break a game: check before allowing.
 
 ## 0.4.0 - Unity importer for Game Localization Studio (2026-11-17)
 

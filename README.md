@@ -2,7 +2,9 @@
 
 ![Game Lab](assets/thumbnail.jpg)
 
-Work on games with Hermes: mod a game on a safe copy, translate its text without breaking it (RPG Maker MV/MZ and, new, Unity Mono builds), check character sprite sheets, and playtest it by pressing and holding keys and reporting honestly, with a short clip of each failed check.
+Work on games with Hermes: mod a game on a safe copy, translate its text without breaking it (RPG Maker MV/MZ, Unity Mono builds and, new, Godot 4 packs), check character sprite sheets, and playtest it by pressing and holding keys and reporting honestly, with a short clip of each failed check.
+
+**New in 0.5.0:** Game Localization Studio reads Godot 4 games. Point `localize_inspect` at an unencrypted `.pck` (or the folder holding it) and it drafts Dialogue Manager lines and speaker names, strings in binary scenes and resources, and String constants in compiled scripts. Strings that are also script constants are held back as possible lookup keys. `localize_export` writes one new `.pck` and re-reads it; the game's pack is never written. Text drawn into images is not drafted; the [Godot wiki page](llmwiki/localization/godot.md) covers the image workflow and how to verify on the game's own engine. Compiled scripts need Python 3.14+.
 
 **New in 0.4.0:** Game Localization Studio reads Unity games. Point `localize_inspect` at a Unity game folder (a Mono build with loose `.assets` files) and it drafts the text held in JSON text assets, in the string fields of script components and ScriptableObjects, and in the string literals of `Assembly-CSharp.dll`. `localize_export` writes patched copies of only the files that changed; your game folder is never written. Two new tools move a whole draft out to a JSONL file and back (`localize_units_file`, `localize_import_translations`), so a translator or a translation worker can do the wording. Checked on one real game's files by re-reading the output with two independent parsers; no game was started. See VERIFICATION.md.
 
@@ -23,7 +25,7 @@ Work on games with Hermes: mod a game on a safe copy, translate its text without
 | Part | What it is for | Tools |
 |---|---|---|
 | ModLab | Copy a game folder into a lab, apply mod ZIPs as revisions you can inspect and roll back, and drive Universal Modder and Reverse Engineer Anything for recon, assets, builds and tests. The original folder is only read. | `modlab_resources`, `modlab_toolkit`, `modlab_rea_native`, `modlab_create`, `modlab_inspect`, `modlab_apply`, `modlab_rollback`, `modlab_select_preserved` |
-| Game Localization Studio | Make translation drafts for RPG Maker MV/MZ message text or for a Unity Mono build. Every string is addressed to its source; control codes, placeholders and (for RPG Maker) row widths are checked, and the result is exported as new files. | `localize_inspect`, `localize_get`, `localize_translate`, `localize_validate`, `localize_export`, `localize_list_drafts`, `localize_units_file`, `localize_import_translations` |
+| Game Localization Studio | Make translation drafts for RPG Maker MV/MZ message text, a Unity Mono build or a Godot 4 `.pck`. Every string is addressed to its source; control codes, placeholders and (for RPG Maker) row widths are checked, and the result is exported as new files. | `localize_inspect`, `localize_get`, `localize_translate`, `localize_validate`, `localize_export`, `localize_list_drafts`, `localize_units_file`, `localize_import_translations` |
 | Playtest Pilot (experimental) | Run an approved checklist and report measured verdicts, or explore a single input and record an observation. | `playtest_run`, `playtest_start`, `playtest_check`, `playtest_read_value`, `playtest_action`, `playtest_replay`, `playtest_observe`, `playtest_report`, `playtest_clips` |
 | Sprites | Inspect an RPG Maker MV character sheet PNG (single-character `$` sheet or the ordinary eight-character sheet): grid, frame size, empty cells, alpha bounds. Preview one walk row as a separate animated GIF. Pairs with ModLab: before a mod that replaces character art is applied, check the sheet. Needs Pillow. | `sprite_inspect_mv`, `sprite_preview_mv` |
 
@@ -40,7 +42,7 @@ ModLab and Game Localization Studio are also published on their own. Playtest Pi
 - **Needs:** Hermes 0.22 or later and a game you own or may translate.
   - Sprites and atomic playtest captures need Pillow (declared in the manifest, installed with `--install-deps`).
   - ModLab also needs the companion tools Universal Modder (`um`) and Reverse Engineer Anything (`rea`), installed by you, for the steps that use them. Its optional setting `rea_native_tool` names a native REA tool already registered in your Hermes.
-  - Game Localization Studio needs RPG Maker MV/MZ JSON data files, or a Unity game folder built with Mono (it has `<Game>_Data/Managed/`) whose data is in loose `.assets` files. Hermes itself does the translating, or you fill in the JSONL file; no key or model is required by the plugin, and no extra Python package.
+  - Game Localization Studio needs RPG Maker MV/MZ JSON data files, a Unity game folder built with Mono (it has `<Game>_Data/Managed/`) whose data is in loose `.assets` files, or an unencrypted Godot 4 `.pck` (format 3 to export). Hermes itself does the translating, or you fill in the JSONL file; no key or model is required by the plugin, and no extra Python package.
   - Playtest Pilot needs a model and provider that accept images in tool results, a Linux X11 (or XWayland) display, `xdotool` and Pillow with X11 capture support; optional `tesseract` reads potential panel text; optional `ffmpeg` (yours, on PATH) cuts the clips of failed checks. Hermes `computer_use` can list windows and remains necessary for legacy actions. The legacy scene hint optionally uses NumPy.
 - **Platform:** Linux is the only platform checked.
 - **Internet:** the plugin makes no network calls of its own: no telemetry, update checks or model calls. Any network use comes from the companion tools you choose to run with ModLab.
@@ -49,7 +51,7 @@ ModLab and Game Localization Studio are also published on their own. Playtest Pi
 
 ## Where things are stored
 
-Each part keeps its data in its own Hermes plugin-data folder, so nothing is shared between them: `game-lab-modlab` (labs, revisions, toolkit logs), `game-lab-localization` (copies of the source file or, for Unity, of every file that holds text, which can be tens of megabytes per draft; drafts, units files and exports) and `game-lab-playtest` (playtest receipts, evidence frames and the `<run id>-clips` folders with the failure clips) and `game-lab-sprites` (preview GIFs). These are separate from the folders of the stand-alone plugins, so data written by those is not picked up; export or copy it over by hand if you need it. Data stays until you remove it.
+Each part keeps its data in its own Hermes plugin-data folder, so nothing is shared between them: `game-lab-modlab` (labs, revisions, toolkit logs), `game-lab-localization` (copies of the source file or, for Unity and Godot, of every file that holds text; a Godot export is a full copy of the pack, which can be tens of megabytes per draft; drafts, units files and exports) and `game-lab-playtest` (playtest receipts, evidence frames and the `<run id>-clips` folders with the failure clips) and `game-lab-sprites` (preview GIFs). These are separate from the folders of the stand-alone plugins, so data written by those is not picked up; export or copy it over by hand if you need it. Data stays until you remove it.
 
 ## Limits
 

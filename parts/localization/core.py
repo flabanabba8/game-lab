@@ -1,4 +1,4 @@
-"""Guarded, source-addressed translation drafts: RPG Maker MV/MZ JSON files and Unity player folders."""
+"""Guarded, source-addressed translation drafts: RPG Maker MV/MZ JSON files, Unity player folders and Godot 4 packs."""
 import hashlib
 import json
 import os
@@ -8,7 +8,7 @@ from collections import Counter
 from pathlib import Path
 import re
 import uuid
-from . import locking, unity
+from . import godot, locking, unity
 
 
 TOKENS = re.compile(r'\\\\|\\[A-Za-z]+(?:\[[^\]\r\n]*\])?|\\[.$|!><^{}]|%\d+')
@@ -38,6 +38,9 @@ def compatible_controls(source, translated):
             token.startswith('%') or re.fullmatch(r'\\[VNPGI](?:\[[^\]]*\])?', token, re.I))]
     return stateful(before) == stateful(after)
 
+
+GODOT_COVERAGE = ('Dialogue Manager line text and speaker names, strings in uncompressed binary scenes/resources, and String constants of compiled scripts are extracted. '
+                  'Text in images (.ctex), compressed (RSCC) resources, encrypted packs, packs embedded in an .exe and strings built at run time are not covered.')
 
 UNITY_COVERAGE = ('JSON text assets, string fields of script components and ScriptableObjects, and string literals of Assembly-CSharp are extracted. '
                   'Text in images, asset bundles, IL2CPP code, and strings built at run time are not covered.')
@@ -101,12 +104,16 @@ class Studio:
         if type(include_system_types) is not bool: raise ValueError('include_system_types must be boolean')
         if type(allow_name_matches) is not bool: raise ValueError('allow_name_matches must be boolean')
         source = Path(source_path).expanduser()
+        if source.is_absolute() and not source.is_symlink() and (source.suffix.lower() == '.pck' or (source.is_dir() and any(p.suffix.lower() == '.pck' for p in source.iterdir()))):
+            if message_rows is not None or message_columns is not None or include_system_types:
+                raise ValueError('message_rows, message_columns and include_system_types apply only to RPG Maker JSON files')
+            return self._inspect_godot(self._game_path(source), text_filter or 'cjk', allow_name_matches)
         if source.is_absolute() and not source.is_symlink() and source.is_dir():
             if message_rows is not None or message_columns is not None or include_system_types:
                 raise ValueError('message_rows, message_columns and include_system_types apply only to RPG Maker JSON files')
             return self._inspect_unity(self._game_path(source), text_filter or 'cjk', allow_name_matches)
-        if text_filter is not None or allow_name_matches: raise ValueError('text_filter and allow_name_matches apply only to a Unity game folder')
-        if not source.is_absolute() or source.is_symlink() or source.suffix.lower() != '.json': raise ValueError('Choose an absolute RPG Maker JSON file path or an absolute Unity game folder')
+        if text_filter is not None or allow_name_matches: raise ValueError('text_filter and allow_name_matches apply only to a Unity game folder or a Godot pack')
+        if not source.is_absolute() or source.is_symlink() or source.suffix.lower() != '.json': raise ValueError('Choose an absolute RPG Maker JSON file path, an absolute Unity game folder or an absolute Godot .pck')
         if include_system_types and source.name != 'System.json': raise ValueError('System-type opt-in applies only to System.json')
         source = self._game_path(source)
         if message_columns is not None and (isinstance(message_columns, bool) or not isinstance(message_columns, int) or not 10 <= message_columns <= 200): raise ValueError('Message columns must be an integer between 10 and 200')
@@ -222,10 +229,82 @@ class Studio:
                 'kinds': dict(kinds.most_common()), 'blocked_name_matches': report['blocked_name_matches'], 'notes': report['notes'],
                 'coverage': UNITY_COVERAGE, 'layout_status': 'unknown; no layout is checked for Unity text, only wider-than-source warnings'}
 
+    def _inspect_godot(self, source, text_filter, allow_name_matches):
+        pack = godot.find_pack(source)
+        units, sources, report = godot.scan(pack, text_filter, allow_name_matches)
+        if not units: raise ValueError('No translatable text found: ' + '; '.join(report['notes']))
+        if len(units) > 20000: raise ValueError('Game exceeds 20,000 translatable strings; use a narrower text_filter')
+        if sum(map(len, sources.values())) > 512 * 1024 * 1024: raise ValueError('Files holding text exceed 512 MiB in total')
+        pack_bytes = pack.stat().st_size
+        identifier = uuid.uuid4().hex; folder = self.root / identifier; folder.mkdir(mode=0o700)
+        for k, (rel, raw) in enumerate(sorted(sources.items())):
+            with os.fdopen(os.open(folder / ('entry-%05d.bin' % k), os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600), 'wb') as stream: stream.write(raw)
+        kinds = Counter(u['kind'] for u in units)
+        state = {'id': identifier, 'engine': 'godot', 'source_name': pack.name, 'pack_path': str(pack), 'pack_bytes': pack_bytes,
+                 'source_sha256': sha(''.join(sorted(sha(raw) for raw in sources.values())).encode()),
+                 'sources': {rel: {'file': 'entry-%05d.bin' % k, 'sha256': sha(raw)} for k, (rel, raw) in enumerate(sorted(sources.items()))},
+                 'message_rows': None, 'row_chars': None, 'units': units, 'groups': [], 'text_filter': text_filter,
+                 'allow_name_matches': allow_name_matches, 'godot_version': report['godot_version']}
+        self._save(folder, state)
+        return {'draft_id': identifier, 'engine': 'godot', 'source_name': pack.name, 'godot_version': report['godot_version'], 'units': len(units), 'message_groups': 0,
+                'source_characters': sum(len(u['source']) for u in units), 'files': len(sources), 'kinds': dict(kinds.most_common()),
+                'blocked_name_matches': report['blocked_name_matches'], 'notes': report['notes'], 'coverage': GODOT_COVERAGE,
+                'layout_status': 'unknown; only wider-than-source and more-than-3-rows warnings are reported'}
+
+    def _validate_godot(self, folder, data):
+        errors, warnings = [], []
+        for rel, meta in data['sources'].items():
+            if sha((folder/meta['file']).read_bytes()) != meta['sha256']: raise ValueError('Stored source bytes changed; refusing output')
+        translated = 0
+        for unit in data['units']:
+            if unit['translation'] is None: continue
+            translated += 1
+            problem = self._problem(data, unit, unit['translation'])
+            if problem: errors.append({'unit': unit['id'], 'error': problem}); continue
+            before, after = godot.display_width(unit['source']), godot.display_width(unit['translation'])
+            rows_before, rows_after = unit['source'].count('\n') + 1, unit['translation'].count('\n') + 1
+            if after > before * 2 or rows_after > max(rows_before, 3 if unit['kind'] == 'dialogue' else rows_before):
+                warnings.append({'unit': unit['id'], 'kind': unit['kind'], 'source_width': before, 'width': after, 'source_rows': rows_before, 'rows': rows_after})
+        open_units = sum(1 for u in data['units'] if u['translation'] is None and not u.get('blocked_reason'))
+        return {'structural_ok': not errors, 'errors': errors, 'translated': translated, 'total': len(data['units']), 'untranslated': open_units,
+                'blocked': sum(bool(u.get('blocked_reason')) for u in data['units']),
+                'layout_warnings': len(warnings), 'layout_warning_units': warnings[:200],
+                'layout_status': 'not checked: dialogue boxes word-wrap; widths are compared with the source only. Test long lines in the running game.',
+                'coverage': GODOT_COVERAGE}
+
+    def _export_godot(self, folder, data, result):
+        pack = Path(data['pack_path'])
+        if not pack.is_file() or pack.stat().st_size != data['pack_bytes']: raise ValueError('The source .pck moved or changed since inspect; inspect it again')
+        index = godot.read_pack(pack); by_name = {e['name']: e for e in index['entries']}
+        replacements, files = {}, []
+        for rel, meta in data['sources'].items():
+            edits = [(u, u['translation']) for u in data['units'] if u['path'][0] == rel and u['translation'] is not None]
+            if not edits: continue
+            raw = (folder/meta['file']).read_bytes()
+            if rel not in by_name or godot.read_entry(pack, by_name[rel]) != raw: raise ValueError('Pack entry changed since inspect: ' + rel)
+            replacements[rel] = godot.patch_entry(rel, raw, edits)
+            files.append({'entry': rel, 'strings_changed': len(edits), 'bytes': len(replacements[rel])})
+        if not replacements: raise ValueError('Nothing is translated yet')
+        out_dir = folder/'exports'/uuid.uuid4().hex; out_dir.mkdir(parents=True, mode=0o700); output = out_dir/data['source_name']
+        godot.write_pack(pack, index, replacements, output)
+        check = godot.read_pack(output)
+        if [e['name'] for e in check['entries']] != [e['name'] for e in index['entries']]: raise ValueError('Written pack directory differs from source')
+        for e in check['entries']:
+            if e['name'] in replacements and godot.read_entry(output, e) != replacements[e['name']]: raise ValueError('Written entry does not read back: ' + e['name'])
+        return {'path': str(output), 'entries_changed': len(files), 'files': files[:200], 'output_sha256': sha(output.read_bytes()), 'source_sha256': data['source_sha256'],
+                'install': 'Back up the game\'s %s, then copy this file over it in a COPY of the game. Test on the engine version the game ships (%s).' % (data['source_name'], data['godot_version']),
+                'verified': 'The new pack was re-read: same entry list, every changed entry reads back. The game was not started.', **result}
+
     @staticmethod
     def _problem(data, unit, text):
         """Why this translation cannot be stored for this unit, or None."""
         if unit.get('blocked_reason'): return unit['blocked_reason']
+        if data.get('engine') == 'godot':
+            if not text.strip(): return 'Translation is empty'
+            if any(ord(c) < 0x20 and c not in '\t\n' for c in text): return 'Translation contains control characters'
+            if godot.tokens(unit['source']) != godot.tokens(text): return 'Translation must keep every BBCode tag, {{variable}} and %-placeholder of the source: ' + ' '.join(sorted(godot.tokens(unit['source'])))
+            if unit['kind'] != 'dialogue' and text.count('\n') > unit['source'].count('\n'): return 'Translation adds line breaks to a single-line label'
+            return None
         if data.get('engine') != 'unity':
             return None if compatible_controls(unit['source'], text) else 'Translation must preserve control tokens, placeholders and formatting-control order'
         if not text.strip(): return 'Translation is empty'
@@ -363,6 +442,7 @@ class Studio:
     def validate(self, draft_id):
         folder = self._draft(draft_id); data = json.loads((folder/'draft.json').read_text())
         if data.get('engine') == 'unity': return self._validate_unity(folder, data)
+        if data.get('engine') == 'godot': return self._validate_godot(folder, data)
         raw = (folder/'source.json').read_bytes()
         if sha(raw) != data['source_sha256']: raise ValueError('Stored source bytes changed; refusing output')
         obj = json.loads(raw.decode('utf-8-sig')); replacements = {tuple(u['path']): u['translation'] for u in data['units'] if u['translation'] is not None}
@@ -392,6 +472,7 @@ class Studio:
             if not result['structural_ok']: raise ValueError('Validation failed; review errors before export')
             data = json.loads((folder/'draft.json').read_text())
             if data.get('engine') == 'unity': return self._export_unity(folder, data, result)
+            if data.get('engine') == 'godot': return self._export_godot(folder, data, result)
             raw = (folder/'source.json').read_bytes(); obj = json.loads(raw.decode('utf-8-sig'))
             for unit in data['units']:
                 if unit['translation'] is not None:
