@@ -1,6 +1,6 @@
 ---
 name: game-localization-studio
-description: Produce source-addressed game translation drafts for RPG Maker MV/MZ and Unity (Mono) games. Use for this domain with its matching plugin tools.
+description: Produce source-addressed game translation drafts for RPG Maker MV/MZ, Unity (Mono) and Godot 4 games. Use for this domain with its matching plugin tools.
 ---
 
 First list the working folder (`ls -lR`) and find the game file the user means (RPG Maker data JSON such as Map001.json, System.json, CommonEvents.json); do not ask for a path that is already in the folder, and use its absolute path with `localize_inspect`.
@@ -12,6 +12,12 @@ blocked name matches; for more than a few dozen units use `localize_units_file` 
 instead of one call per unit; keep every `{0}` placeholder and `<tag>`; after `localize_export` say that the result
 is a folder of patched copies to be put over the same files in a COPY of the game, that the plugin re-read them but
 started nothing, and that fonts, fit and lookup-key risks are unverified until it is played.
+
+Godot 4 game (a `.pck` with magic `GDPC`): pass the absolute `.pck` (or its folder) to `localize_inspect` and read
+[Godot games](../../llmwiki/localization/godot.md) first. Report counts per kind, blocked lookup keys and the
+engine version. Keep every BBCode tag, `{{variable}}` and `%s`; labels keep their line count; dialogue may wrap.
+After `localize_export` say the result is ONE new `.pck` to copy over the game's pack in a backed-up copy, that the
+plugin re-read it but started nothing, and that image text, fit and the final look need the game's own engine.
 
 On first use read the [bundled LLM wiki](../../llmwiki/localization/index.md), then load
 only the domain references needed for this task.
